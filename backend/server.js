@@ -3,19 +3,25 @@ const mysql = require('mysql2');
 const cors = require('cors');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
-app.use(cors());
+app.use(cors({
+    origin: ['http://localhost:3000', 'http://localhost:19006', 'http://10.0.2.2:5000', 'http://localhost:8081'],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json());
 
 // Database connection
 const db = mysql.createConnection({
     host: 'localhost',
     user: 'root',
-    password: '',
+    password: 'Narutostorm4',
     database: 'gymnastics_academy'
 });
 
@@ -132,7 +138,7 @@ app.delete('/api/gymnasts/:id', authenticateToken, (req, res) => {
             
             // Log deletion
             const logEntry = `[${new Date().toISOString()}] Deleted gymnast: ${gymnast.full_name} (ID: ${gymnast.id})\n`;
-            require('fs').appendFileSync('deletion_log.txt', logEntry);
+            fs.appendFileSync('deletion_log.txt', logEntry);
             
             res.json({ success: true, message: 'Gymnast deleted successfully' });
         });
