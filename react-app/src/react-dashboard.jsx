@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link, useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 
 // Configure axios base URL
@@ -10,6 +10,278 @@ axios.defaults.baseURL = API_BASE_URL;
 const getAuthToken = () => {
     const token = localStorage.getItem('token');
     return token ? `Bearer ${token}` : '';
+};
+
+// View Gymnast Component
+const ViewGymnast = () => {
+    const [gymnast, setGymnast] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+    const { id } = useParams();
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        fetchGymnastDetails();
+    }, [id]);
+
+    const fetchGymnastDetails = async () => {
+        try {
+            setLoading(true);
+            const response = await axios.get(`/gymnasts/${id}`, {
+                headers: { Authorization: getAuthToken() }
+            });
+            setGymnast(response.data);
+            setError('');
+        } catch (error) {
+            console.error('Error fetching gymnast details:', error);
+            setError('Failed to fetch gymnast details');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    if (loading) return <div className="loading">Loading gymnast details...</div>;
+    if (error) return <div className="error-message">{error}</div>;
+    if (!gymnast) return <div className="error-message">Gymnast not found</div>;
+
+    return (
+        <div className="container">
+            <div className="view-container">
+                <div className="view-header">
+                    <h2>👤 Gymnast Details</h2>
+                    <div className="action-buttons">
+                        <Link to="/dashboard" className="btn-secondary">← Back to Dashboard</Link>
+                        <Link to={`/edit/${gymnast.id}`} className="btn-primary">✏️ Edit Gymnast</Link>
+                    </div>
+                </div>
+                
+                <div className="details-card">
+                    <div className="detail-row">
+                        <div className="detail-label">Membership ID:</div>
+                        <div className="detail-value">{gymnast.membership_id}</div>
+                    </div>
+                    <div className="detail-row">
+                        <div className="detail-label">Full Name:</div>
+                        <div className="detail-value"><strong>{gymnast.full_name}</strong></div>
+                    </div>
+                    <div className="detail-row">
+                        <div className="detail-label">Email:</div>
+                        <div className="detail-value">{gymnast.email}</div>
+                    </div>
+                    <div className="detail-row">
+                        <div className="detail-label">Contact Number:</div>
+                        <div className="detail-value">{gymnast.contact_no}</div>
+                    </div>
+                    <div className="detail-row">
+                        <div className="detail-label">Date of Birth:</div>
+                        <div className="detail-value">{new Date(gymnast.date_of_birth).toLocaleDateString()}</div>
+                    </div>
+                    <div className="detail-row">
+                        <div className="detail-label">Training Program:</div>
+                        <div className="detail-value">
+                            <span className={`program-badge program-${gymnast.training_program?.toLowerCase()}`}>
+                                {gymnast.training_program}
+                            </span>
+                        </div>
+                    </div>
+                    <div className="detail-row">
+                        <div className="detail-label">Enrollment Date:</div>
+                        <div className="detail-value">{new Date(gymnast.enrollment_date).toLocaleDateString()}</div>
+                    </div>
+                    <div className="detail-row">
+                        <div className="detail-label">Progress Status:</div>
+                        <div className="detail-value">
+                            <span className={`status-badge status-${gymnast.progress_status?.toLowerCase() || 'active'}`}>
+                                {gymnast.progress_status || 'Active'}
+                            </span>
+                        </div>
+                    </div>
+                    <div className="detail-row">
+                        <div className="detail-label">Created At:</div>
+                        <div className="detail-value">{new Date(gymnast.created_at).toLocaleString()}</div>
+                    </div>
+                    <div className="detail-row">
+                        <div className="detail-label">Last Updated:</div>
+                        <div className="detail-value">{new Date(gymnast.updated_at).toLocaleString()}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// Edit Gymnast Component
+const EditGymnast = () => {
+    const [formData, setFormData] = useState({
+        full_name: '',
+        email: '',
+        contact_no: '',
+        date_of_birth: '',
+        training_program: 'Beginner',
+        enrollment_date: '',
+        progress_status: 'Active'
+    });
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+    const [success, setSuccess] = useState('');
+    const { id } = useParams();
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        fetchGymnastDetails();
+    }, [id]);
+
+    const fetchGymnastDetails = async () => {
+        try {
+            setLoading(true);
+            const response = await axios.get(`/gymnasts/${id}`, {
+                headers: { Authorization: getAuthToken() }
+            });
+            const gymnast = response.data;
+            setFormData({
+                full_name: gymnast.full_name,
+                email: gymnast.email,
+                contact_no: gymnast.contact_no,
+                date_of_birth: gymnast.date_of_birth.split('T')[0],
+                training_program: gymnast.training_program,
+                enrollment_date: gymnast.enrollment_date.split('T')[0],
+                progress_status: gymnast.progress_status || 'Active'
+            });
+        } catch (error) {
+            console.error('Error fetching gymnast:', error);
+            setError('Failed to fetch gymnast details');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setLoading(true);
+        setError('');
+        setSuccess('');
+
+        try {
+            const response = await axios.put(`/gymnasts/${id}`, formData, {
+                headers: { Authorization: getAuthToken() }
+            });
+
+            if (response.data.success) {
+                setSuccess('Gymnast updated successfully!');
+                setTimeout(() => {
+                    navigate('/dashboard');
+                }, 1500);
+            }
+        } catch (error) {
+            console.error('Update error:', error);
+            setError(error.response?.data?.error || 'Update failed');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleChange = (e) => {
+        setFormData({ ...formData, [e.target.name]: e.target.value });
+    };
+
+    if (loading && !formData.full_name) {
+        return <div className="loading">Loading gymnast data...</div>;
+    }
+
+    return (
+        <div className="register-container">
+            <div className="register-box">
+                <h2>✏️ Edit Gymnast</h2>
+                {error && <div className="error-message">{error}</div>}
+                {success && <div className="success-message">{success}</div>}
+                <form onSubmit={handleSubmit}>
+                    <div className="form-group">
+                        <label>Full Name *</label>
+                        <input
+                            type="text"
+                            name="full_name"
+                            value={formData.full_name}
+                            onChange={handleChange}
+                            required
+                        />
+                    </div>
+                    <div className="form-group">
+                        <label>Email *</label>
+                        <input
+                            type="email"
+                            name="email"
+                            value={formData.email}
+                            onChange={handleChange}
+                            required
+                        />
+                    </div>
+                    <div className="form-group">
+                        <label>Contact Number *</label>
+                        <input
+                            type="tel"
+                            name="contact_no"
+                            value={formData.contact_no}
+                            onChange={handleChange}
+                            required
+                        />
+                    </div>
+                    <div className="form-group">
+                        <label>Date of Birth *</label>
+                        <input
+                            type="date"
+                            name="date_of_birth"
+                            value={formData.date_of_birth}
+                            onChange={handleChange}
+                            required
+                        />
+                    </div>
+                    <div className="form-group">
+                        <label>Training Program *</label>
+                        <select
+                            name="training_program"
+                            value={formData.training_program}
+                            onChange={handleChange}
+                            required
+                        >
+                            <option value="Beginner">Beginner</option>
+                            <option value="Intermediate">Intermediate</option>
+                            <option value="Advanced">Advanced</option>
+                        </select>
+                    </div>
+                    <div className="form-group">
+                        <label>Enrollment Date *</label>
+                        <input
+                            type="date"
+                            name="enrollment_date"
+                            value={formData.enrollment_date}
+                            onChange={handleChange}
+                            required
+                        />
+                    </div>
+                    <div className="form-group">
+                        <label>Progress Status</label>
+                        <select
+                            name="progress_status"
+                            value={formData.progress_status}
+                            onChange={handleChange}
+                        >
+                            <option value="Active">Active</option>
+                            <option value="On Hold">On Hold</option>
+                            <option value="Completed">Completed</option>
+                        </select>
+                    </div>
+                    <div className="button-group">
+                        <button type="submit" disabled={loading}>
+                            {loading ? 'Updating...' : 'Update Gymnast'}
+                        </button>
+                        <button type="button" onClick={() => navigate('/dashboard')} className="btn-cancel">
+                            Cancel
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
 };
 
 // Register Form Component
@@ -38,7 +310,7 @@ const RegisterForm = ({ onSuccess }) => {
 
             if (response.data.success) {
                 alert('Gymnast registered successfully!');
-                navigate('/dashboard'); // Navigate back to dashboard
+                navigate('/dashboard');
             }
         } catch (error) {
             console.error('Registration error:', error);
@@ -457,9 +729,9 @@ const App = () => {
                     <Route path="/login" element={<GymnastDashboard />} />
                     <Route path="/dashboard" element={<GymnastDashboard />} />
                     <Route path="/register" element={<RegisterForm />} />
+                    <Route path="/gymnast/:id" element={<ViewGymnast />} />
+                    <Route path="/edit/:id" element={<EditGymnast />} />
                     <Route path="/profile" element={<div className="container"><h2>Profile Page</h2><Link to="/dashboard">Back to Dashboard</Link></div>} />
-                    <Route path="/gymnast/:id" element={<div className="container"><h2>Gymnast Details</h2><Link to="/dashboard">Back to Dashboard</Link></div>} />
-                    <Route path="/edit/:id" element={<div className="container"><h2>Edit Gymnast</h2><Link to="/dashboard">Back to Dashboard</Link></div>} />
                 </Routes>
             </div>
         </Router>
