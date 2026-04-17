@@ -1,9 +1,12 @@
 <?php 
 session_start(); 
+require_once 'config/db.php';
+
 $error_message = isset($_SESSION['error']) ? $_SESSION['error'] : '';
 unset($_SESSION['error']);
 $success_message = isset($_SESSION['success']) ? $_SESSION['success'] : '';
 unset($_SESSION['success']);
+$selected_role = $_GET['role'] ?? 'admin';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -223,7 +226,6 @@ unset($_SESSION['success']);
             color: #4ade80;
         }
 
-        /* Test Credentials Box */
         .test-credentials {
             background: rgba(16, 185, 129, 0.08);
             border: 1px solid rgba(16, 185, 129, 0.2);
@@ -231,6 +233,7 @@ unset($_SESSION['success']);
             padding: 16px;
             margin-top: 25px;
         }
+        
         .test-credentials h4 {
             color: var(--success);
             font-size: 13px;
@@ -239,11 +242,13 @@ unset($_SESSION['success']);
             align-items: center;
             gap: 8px;
         }
+        
         .credential-row {
             display: flex;
             gap: 12px;
             flex-wrap: wrap;
         }
+        
         .credential-item {
             background: rgba(0, 0, 0, 0.3);
             padding: 8px 12px;
@@ -251,10 +256,19 @@ unset($_SESSION['success']);
             font-size: 12px;
             flex: 1;
             min-width: 180px;
+            cursor: pointer;
+            transition: all 0.3s;
         }
+        
+        .credential-item:hover {
+            background: rgba(139, 92, 246, 0.2);
+            transform: translateY(-2px);
+        }
+        
         .credential-item strong {
             color: var(--primary);
         }
+        
         .credential-item span {
             color: #cbd5e1;
             font-family: monospace;
@@ -263,6 +277,9 @@ unset($_SESSION['success']);
         .footer-links {
             text-align: center;
             margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
         }
 
         .footer-links a {
@@ -276,11 +293,11 @@ unset($_SESSION['success']);
             color: white;
         }
 
-        /* Quick Fill Button */
         .quick-fill {
             margin-top: 15px;
             text-align: center;
         }
+        
         .quick-fill button {
             background: transparent;
             border: 1px solid var(--glass-border);
@@ -291,6 +308,7 @@ unset($_SESSION['success']);
             cursor: pointer;
             transition: 0.3s;
         }
+        
         .quick-fill button:hover {
             border-color: var(--primary);
             color: var(--primary);
@@ -308,26 +326,27 @@ unset($_SESSION['success']);
             </div>
 
             <?php if ($error_message): ?>
-                <div class="alert">⚠️ <?php echo $error_message; ?></div>
+                <div class="alert">⚠️ <?php echo htmlspecialchars($error_message); ?></div>
             <?php endif; ?>
+            
             <?php if ($success_message): ?>
                 <div class="alert-success" style="padding: 12px; border-radius: 12px; margin-bottom: 20px; text-align: center;">
-                    ✅ <?php echo $success_message; ?>
+                    ✅ <?php echo htmlspecialchars($success_message); ?>
                 </div>
             <?php endif; ?>
 
             <div class="role-toggle">
-                <button type="button" class="role-btn active" onclick="setRole('admin', this)">
+                <button type="button" class="role-btn <?php echo $selected_role === 'admin' ? 'active' : ''; ?>" onclick="setRole('admin', this)">
                     <i class="fas fa-user-shield"></i> Admin
                 </button>
-                <button type="button" class="role-btn" onclick="setRole('gymnast', this)">
+                <button type="button" class="role-btn <?php echo $selected_role === 'gymnast' ? 'active' : ''; ?>" onclick="setRole('gymnast', this)">
                     <i class="fas fa-user-graduate"></i> Gymnast
                 </button>
             </div>
 
             <form action="auth.php" method="POST" id="loginForm">
                 <input type="hidden" name="action" value="login">
-                <input type="hidden" name="role" id="roleInput" value="admin">
+                <input type="hidden" name="role" id="roleInput" value="<?php echo $selected_role; ?>">
 
                 <div class="input-group">
                     <label><i class="fas fa-user"></i> Username</label>
@@ -350,51 +369,44 @@ unset($_SESSION['success']);
                 </button>
             </form>
 
-            <!-- Test Credentials for Lecturers -->
             <div class="test-credentials">
-                <h4><i class="fas fa-flask"></i> Test Credentials</h4>
+                <h4><i class="fas fa-flask"></i> Quick Login (Click to auto-fill)</h4>
                 <div class="credential-row">
-                    <div class="credential-item">
-                        <strong>👑 Admin:</strong><br>
+                    <div class="credential-item" onclick="fillCredentials('admin', 'admin', 'admin123')">
+                        <strong>👑 Admin</strong><br>
                         <span>Username: admin</span><br>
                         <span>Password: admin123</span>
                     </div>
-                    <div class="credential-item">
-                        <strong>🤸 Gymnast:</strong><br>
+                    <div class="credential-item" onclick="fillCredentials('gymnast', 'gymnast1', 'gymnast123')">
+                        <strong>🤸 Gymnast</strong><br>
                         <span>Username: gymnast1</span><br>
-                        <span>Password: gymnast123</span>
+                        <span>Password: gymnast1123</span>
                     </div>
                 </div>
             </div>
 
             <div class="quick-fill">
                 <button type="button" onclick="quickFill()">
-                    <i class="fas fa-magic"></i> Quick Fill Demo Credentials
+                    <i class="fas fa-magic"></i> Auto-fill Current Role
                 </button>
             </div>
 
-            <div class="footer-links">
+            <div class="footer-links">                
                 <a href="index.php"><i class="fas fa-arrow-left"></i> Back to Home</a>
             </div>
         </div>
     </div>
 
     <script>
-        // Set role and update UI
         function setRole(role, btn) {
             document.getElementById('roleInput').value = role;
             document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
-            
-            // Update quick fill based on role
             updateQuickFillForRole(role);
         }
         
-        // Update quick fill credentials based on selected role
         function updateQuickFillForRole(role) {
             const usernameField = document.getElementById('username');
-            const passwordField = document.getElementById('password');
-            
             if (role === 'admin') {
                 usernameField.placeholder = "Enter admin username (e.g., admin)";
             } else {
@@ -402,62 +414,61 @@ unset($_SESSION['success']);
             }
         }
         
-        // Quick fill demo credentials
-        function quickFill() {
-            const role = document.getElementById('roleInput').value;
-            const usernameField = document.getElementById('username');
-            const passwordField = document.getElementById('password');
-            
-            if (role === 'admin') {
-                usernameField.value = 'admin';
-                passwordField.value = 'admin123';
-                showNotification('Admin credentials filled! Click Access Dashboard to login.', 'success');
-            } else {
-                usernameField.value = 'gymnast1';
-                passwordField.value = 'gymnast123';
-                showNotification('Gymnast credentials filled! Click Access Dashboard to login.', 'success');
+        function fillCredentials(role, username, password) {
+            const roleBtn = document.querySelector(`.role-btn.${role === 'admin' ? 'active' : ''}`);
+            if (!roleBtn.classList.contains('active')) {
+                const btn = document.querySelector(`.role-btn:nth-child(${role === 'admin' ? 1 : 2})`);
+                setRole(role, btn);
             }
             
-            // Highlight the fields briefly
+            document.getElementById('username').value = username;
+            document.getElementById('password').value = password;
+            
+            const usernameField = document.getElementById('username');
+            const passwordField = document.getElementById('password');
             usernameField.style.borderColor = '#10b981';
             passwordField.style.borderColor = '#10b981';
             setTimeout(() => {
                 usernameField.style.borderColor = '';
                 passwordField.style.borderColor = '';
             }, 1500);
+            
+            showNotification(`${role === 'admin' ? 'Admin' : 'Gymnast'} credentials filled! Click 'Access Dashboard' to login.`, 'success');
         }
         
-        // Show temporary notification
+        function quickFill() {
+            const role = document.getElementById('roleInput').value;
+            if (role === 'admin') {
+                fillCredentials('admin', 'admin', 'admin123');
+            } else {
+                fillCredentials('gymnast', 'gymnast1', 'gymnast1123');
+            }
+        }
+        
         function showNotification(message, type) {
             const existingAlert = document.querySelector('.alert, .alert-success');
             if (existingAlert) existingAlert.remove();
             
             const notification = document.createElement('div');
             notification.className = type === 'success' ? 'alert-success' : 'alert';
-            notification.style.cssText = 'padding: 12px; border-radius: 12px; margin-bottom: 20px; text-align: center;';
+            notification.style.cssText = 'padding: 12px; border-radius: 12px; margin-bottom: 20px; text-align: center; animation: slideIn 0.3s ease;';
             notification.innerHTML = type === 'success' ? `✅ ${message}` : `⚠️ ${message}`;
             
             const form = document.querySelector('form');
             form.parentNode.insertBefore(notification, form);
-            
             setTimeout(() => notification.remove(), 3000);
         }
         
-        // Form submission loading state
         document.getElementById('loginForm').addEventListener('submit', function(e) {
             const btn = document.getElementById('loginBtn');
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Authenticating...';
             btn.disabled = true;
         });
         
-        // Enter key support
-        document.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                document.getElementById('loginForm').submit();
-            }
-        });
+        const style = document.createElement('style');
+        style.textContent = `@keyframes slideIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }`;
+        document.head.appendChild(style);
         
-        // 3D Parallax Effect
         const card = document.getElementById('parallaxCard');
         document.addEventListener('mousemove', (e) => {
             let xAxis = (window.innerWidth / 2 - e.pageX) / 25;
@@ -468,8 +479,7 @@ unset($_SESSION['success']);
             card.style.transform = `rotateY(0deg) rotateX(0deg)`;
         });
         
-        // Initialize
-        updateQuickFillForRole('admin');
+        updateQuickFillForRole('<?php echo $selected_role; ?>');
     </script>
 </body>
 </html>

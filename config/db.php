@@ -5,17 +5,12 @@ class Database {
     private $connection;
     
     private $host = 'localhost';
-    private $username = 'root';
-    private $password = 'Narutostorm4';
+    private $username = 'root';     // Change this to your MySQL username
+    private $password = 'Narutostorm4';         // Change this to your MySQL password
     private $database = 'gymnastics_academy';
     
     private function __construct() {
-        $this->connection = new mysqli(
-            $this->host, 
-            $this->username, 
-            $this->password, 
-            $this->database
-        );
+        $this->connection = new mysqli($this->host, $this->username, $this->password, $this->database);
         
         if ($this->connection->connect_error) {
             die("Connection failed: " . $this->connection->connect_error);
@@ -37,9 +32,15 @@ class Database {
     
     public function executeQuery($sql, $types = "", $params = []) {
         $stmt = $this->connection->prepare($sql);
-        if ($stmt && !empty($params)) {
+        if ($stmt === false) {
+            error_log("Prepare failed: " . $this->connection->error);
+            return false;
+        }
+        
+        if (!empty($params)) {
             $stmt->bind_param($types, ...$params);
         }
+        
         $stmt->execute();
         return $stmt;
     }

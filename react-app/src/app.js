@@ -15,10 +15,10 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 
-// IMPORTANT: Change this to your actual computer's IP address
-// For Android emulator: http://10.0.2.2:5000/api
-// For iOS simulator: http://localhost:5000/api
-// For physical device: http://YOUR_COMPUTER_IP:5000/api
+// API Configuration - Change this based on your environment
+// For Android Emulator: http://10.0.2.2:5000/api
+// For iOS Simulator: http://localhost:5000/api
+// For Physical Device: http://YOUR_COMPUTER_IP:5000/api
 const API_URL = 'http://10.0.2.2:5000/api';
 
 const App = () => {
@@ -67,24 +67,35 @@ const App = () => {
 
         setLoading(true);
         try {
+            console.log('Attempting login with:', loginData.username);
+            
             const response = await axios.post(`${API_URL}/login`, {
                 username: loginData.username,
                 password: loginData.password
             });
             
+            console.log('Login response:', response.data);
+            
             if (response.data.success) {
                 await AsyncStorage.setItem('token', response.data.token);
                 setToken(response.data.token);
                 setIsLoggedIn(true);
+                Alert.alert('Success', 'Login successful!');
                 await fetchGymnasts(response.data.token);
+            } else {
+                Alert.alert('Login Failed', 'Invalid response from server');
             }
         } catch (error) {
             console.error('Login error:', error);
-            let errorMessage = 'Login failed';
+            let errorMessage = 'Login failed. ';
             if (error.response) {
-                errorMessage = error.response.data.error || 'Invalid credentials';
+                errorMessage += error.response.data.error || 'Invalid credentials';
+                console.log('Server response:', error.response.data);
             } else if (error.request) {
-                errorMessage = 'Cannot connect to server. Check if backend is running.';
+                errorMessage += 'Cannot connect to server. Make sure backend is running on port 5000';
+                console.log('No response from server');
+            } else {
+                errorMessage += error.message;
             }
             Alert.alert('Login Failed', errorMessage);
         } finally {
