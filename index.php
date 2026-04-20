@@ -1,6 +1,6 @@
 <?php
 session_start();
-// Mock data for the "Advanced" feel
+// Mock data
 $totalGymnasts = 1248;
 $activeSessions = 12;
 $growthRate = "+14.5%";
@@ -10,357 +10,306 @@ $growthRate = "+14.5%";
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Elite Gymnastics | Executive Dashboard</title>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <title>Elite Gymnastics | Management System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
-            --primary: #8B5CF6;
-            --primary-glow: rgba(139, 92, 246, 0.5);
-            --accent: #00F2FE;
-            --bg-dark: #0f172a;
-            --glass: rgba(255, 255, 255, 0.03);
-            --glass-border: rgba(255, 255, 255, 0.08);
-            --text-main: #f8fafc;
-            --text-dim: #94a3b8;
+            --brand-blue: #1e293b;
+            --brand-accent: #2563eb;
+            --text-dark: #0f172a;
+            --text-light: #64748b;
+            --white: #ffffff;
         }
 
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-family: 'Inter', sans-serif;
         }
 
         body {
-            background-color: var(--bg-dark);
-            color: var(--text-main);
-            overflow: hidden; /* Dashboard feel */
-            height: 100vh;
+            background: #f8fafc;
+            color: var(--text-dark);
+            min-height: 100vh;
             display: flex;
+            flex-direction: column;
         }
 
-        /* Animated Mesh Background */
-        .mesh-gradient {
+        /* High-Impact Hero Background */
+        .hero-bg {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
-            height: 100%;
+            height: 450px;
+            background: linear-gradient(rgba(15, 23, 42, 0.85), rgba(15, 23, 42, 0.85)), 
+                        url('https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&q=80&w=2070');
+            background-size: cover;
+            background-position: center;
             z-index: -1;
-            background: 
-                radial-gradient(at 0% 0%, rgba(139, 92, 246, 0.15) 0px, transparent 50%),
-                radial-gradient(at 100% 0%, rgba(0, 242, 254, 0.1) 0px, transparent 50%),
-                radial-gradient(at 100% 100%, rgba(236, 72, 153, 0.1) 0px, transparent 50%),
-                radial-gradient(at 0% 100%, rgba(59, 130, 246, 0.15) 0px, transparent 50%);
-            filter: blur(80px);
+            clip-path: polygon(0 0, 100% 0, 100% 85%, 0% 100%);
         }
 
-        /* Sidebar Navigation */
-        nav {
-            width: 280px;
-            background: rgba(15, 23, 42, 0.8);
-            backdrop-filter: blur(20px);
-            border-right: 1px solid var(--glass-border);
-            padding: 40px 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 40px;
-            z-index: 10;
-        }
-
-        .nav-logo {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            font-weight: 800;
-            font-size: 20px;
-            letter-spacing: -0.5px;
-            background: linear-gradient(to right, #fff, var(--text-dim));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .nav-logo i {
-            -webkit-text-fill-color: var(--primary);
-            font-size: 28px;
-            filter: drop-shadow(0 0 10px var(--primary-glow));
-        }
-
-        .nav-links {
-            list-style: none;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .nav-links a {
-            color: var(--text-dim);
-            text-decoration: none;
-            padding: 14px 18px;
-            border-radius: 14px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            font-weight: 500;
-        }
-
-        .nav-links a:hover, .nav-links a.active {
-            background: var(--glass);
-            color: #fff;
-            transform: translateX(5px);
-            box-shadow: inset 0 0 10px rgba(255,255,255,0.02);
-        }
-
-        /* Main Content Area */
-        main {
-            flex: 1;
-            padding: 40px;
-            overflow-y: auto;
-            position: relative;
-        }
-
-        .header-top {
+        /* Navigation */
+        header {
+            padding: 20px 5%;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 40px;
-            animation: fadeInDown 0.8s ease-out;
+            color: var(--white);
         }
 
-        .welcome-text h1 {
-            font-size: 32px;
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 800;
+            letter-spacing: -1px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Main Container */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            width: 100%;
+        }
+
+        .welcome-section {
+            color: var(--white);
+            margin-bottom: 60px;
+            padding-top: 20px;
+        }
+
+        .welcome-section h1 {
+            font-size: 2.5rem;
             font-weight: 700;
-            margin-bottom: 5px;
+            margin-bottom: 10px;
         }
 
-        .welcome-text p {
-            color: var(--text-dim);
-        }
-
-        /* Dashboard Grid */
-        .dashboard-grid {
+        /* Stat Cards */
+        .stats-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            grid-template-rows: auto;
-            gap: 25px;
-            animation: fadeInUp 1s ease-out;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: -80px; /* Pull cards into the hero section */
         }
 
-        .glass-card {
-            background: var(--glass);
-            backdrop-filter: blur(12px);
-            border: 1px solid var(--glass-border);
-            border-radius: 24px;
+        .stat-card {
+            background: var(--white);
             padding: 30px;
-            transition: all 0.4s ease;
-            position: relative;
-            overflow: hidden;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            transition: transform 0.3s ease;
         }
 
-        .glass-card::before {
-            content: '';
-            position: absolute;
-            top: 0; left: -100%;
-            width: 100%; height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
-            transition: 0.5s;
+        .stat-card:hover {
+            transform: translateY(-5px);
         }
 
-        .glass-card:hover::before {
-            left: 100%;
-        }
-
-        .glass-card:hover {
-            transform: translateY(-10px);
-            border-color: rgba(255,255,255,0.2);
-            background: rgba(255, 255, 255, 0.05);
-        }
-
-        /* Specific Component Styles */
-        .stat-card .icon {
-            width: 50px;
-            height: 50px;
-            border-radius: 15px;
+        .stat-icon {
+            width: 60px;
+            height: 60px;
+            background: #eff6ff;
+            color: var(--brand-accent);
+            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-bottom: 20px;
-            font-size: 20px;
+            font-size: 24px;
         }
 
-        .stat-val {
-            font-size: 36px;
-            font-weight: 800;
-            margin-bottom: 5px;
+        .stat-info h3 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--brand-blue);
         }
 
-        .stat-label {
-            color: var(--text-dim);
-            font-size: 14px;
+        .stat-info p {
+            color: var(--text-light);
             text-transform: uppercase;
+            font-size: 0.75rem;
+            font-weight: 600;
             letter-spacing: 1px;
         }
 
-        .action-card {
-            grid-column: span 3;
-            display: flex;
-            justify-content: space-around;
+        /* Portal Section */
+        .portal-grid {
+            display: grid;
+            background: url('home.jpg');
+            grid-template-columns: 2fr 1fr;
+            gap: 30px;
+            margin-top: 40px;
+        }
+
+        .action-box {
+            background: var(--white);
             padding: 40px;
-            background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(0, 242, 254, 0.1));
+            border-radius: 20px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
         }
 
-        .btn-premium {
-            padding: 16px 32px;
-            border-radius: 16px;
-            text-decoration: none;
-            font-weight: 700;
+        .btn-group {
             display: flex;
+            gap: 15px;
+            margin-top: 25px;
+        }
+
+        .btn {
+            padding: 14px 28px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: 0.2s;
+            display: inline-flex;
             align-items: center;
-            gap: 12px;
-            transition: 0.3s;
-            position: relative;
+            gap: 10px;
         }
 
-        .btn-admin { 
-            background: #fff; 
-            color: #000; 
-        }
-        .btn-gymnast { 
-            background: var(--glass); 
-            color: #fff; 
-            border: 1px solid var(--glass-border);
+        .btn-primary {
+            background: var(--brand-accent);
+            color: white;
         }
 
-        .btn-premium:hover {
-            transform: scale(1.05);
-            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        .btn-outline {
+            border: 2px solid #e2e8f0;
+            color: var(--brand-blue);
         }
 
-        /* Animations */
-        @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(30px); }
-            to { opacity: 1; transform: translateY(0); }
+        .btn:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
         }
 
-        @keyframes fadeInDown {
-            from { opacity: 0; transform: translateY(-20px); }
-            to { opacity: 1; transform: translateY(0); }
+        /* Small Feature Cards */
+        .features {
+            display: grid;
+            gap: 15px;
         }
 
-        /* Custom Scrollbar */
-        main::-webkit-scrollbar { width: 6px; }
-        main::-webkit-scrollbar-track { background: transparent; }
-        main::-webkit-scrollbar-thumb { background: var(--glass-border); border-radius: 10px; }
+        .feature-item {
+            display: flex;
+            gap: 15px;
+            padding: 15px;
+            background: #f1f5f9;
+            border-radius: 12px;
+            font-size: 0.9rem;
+        }
 
+        .feature-item i { color: var(--brand-accent); }
+
+        @media (max-width: 768px) {
+            .portal-grid { grid-template-columns: 1fr; }
+            .btn-group { flex-direction: column; }
+            .welcome-section h1 { font-size: 1.8rem; }
+        }
     </style>
 </head>
 <body>
 
-    <div class="mesh-gradient"></div>
+    <div class="hero-bg"></div>
 
-    <nav>
-        <div class="nav-logo">
-            <i class="fas fa-bolt"></i>
+    <header>
+        <div class="logo">
+            <i class="fas fa-medal"></i>
             <span>ELITE GYMNASTICS</span>
         </div>
-        
-       
+        <div class="status">
+            <small><i class="fas fa-circle" style="color: #10b981; font-size: 8px;"></i> System Live</small>
+        </div>
+    </header>
 
-        <div style="margin-top: auto;">
-            <div class="glass-card" style="padding: 15px; text-align: center;">
-                <p style="font-size: 12px; color: var(--text-dim);">System Status</p>
-                <p style="font-size: 14px; color: #10b981;"><i class="fas fa-circle" style="font-size: 8px;"></i> Operational</p>
+    <div class="container">
+        <section class="welcome-section">
+            <p style="text-transform: uppercase; letter-spacing: 2px; font-size: 0.8rem; opacity: 0.8;">Academy Management Portal</p>
+            <h1>Global Dashboard</h1>
+            <p style="max-width: 600px; opacity: 0.9;">Manage student progression, billing, and training schedules through our unified executive command center.</p>
+        </section>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fas fa-users"></i></div>
+                <div class="stat-info">
+                    <h3><?php echo number_format($totalGymnasts); ?></h3>
+                    <p>Total Members</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fas fa-clock"></i></div>
+                <div class="stat-info">
+                    <h3><?php echo $activeSessions; ?></h3>
+                    <p>Active Sessions</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fas fa-chart-line"></i></div>
+                <div class="stat-info">
+                    <h3 style="color: #10b981;"><?php echo $growthRate; ?></h3>
+                    <p>Growth Velocity</p>
+                </div>
             </div>
         </div>
-    </nav>
 
-    <main>
-        <div class="header-top">
-            <div class="welcome-text">
-                <h1>Command Center</h1>
-                <p>Welcome back, Administrator. Here's what's happening today.</p>
-            </div>
-            <div class="user-profile" style="display: flex; align-items: center; gap: 15px;">
-                <div style="text-align: right;">
-                    <p style="font-weight: 600;">System Guest</p>
-                    <p style="font-size: 12px; color: var(--text-dim);">Internal Network</p>
+        <div class="portal-grid">
+            <div class="action-box">
+                <h2 style="margin-bottom: 10px;">System Access</h2>
+                <p style="color: var(--text-light);">Select your entry point to continue to the secure management environment.</p>
+                
+                <div class="btn-group">
+                    <a href="login.php" class="btn btn-primary">
+                        <i class="fas fa-shield-check"></i> Administrator Login
+                    </a>
+                    <a href="login.php" class="btn btn-outline">
+                        <i class="fas fa-user"></i> Gymnast Portal
+                    </a>
                 </div>
-                <div class="glass-card" style="padding: 10px; border-radius: 50%; width: 50px; height: 50px; display: flex; align-items: center; justify-content: center;">
-                    <i class="fas fa-user"></i>
-                </div>
-            </div>
-        </div>
 
-        <div class="dashboard-grid">
-            <div class="glass-card stat-card">
-                <div class="icon" style="background: rgba(139, 92, 246, 0.2); color: var(--primary);">
-                    <i class="fas fa-users"></i>
-                </div>
-                <div class="stat-val"><?php echo number_format($totalGymnasts); ?></div>
-                <div class="stat-label">Active Gymnasts</div>
-            </div>
-
-            <div class="glass-card stat-card">
-                <div class="icon" style="background: rgba(0, 242, 254, 0.2); color: var(--accent);">
-                    <i class="fas fa-running"></i>
-                </div>
-                <div class="stat-val"><?php echo $activeSessions; ?></div>
-                <div class="stat-label">Live Sessions</div>
-            </div>
-
-            <div class="glass-card stat-card">
-                <div class="icon" style="background: rgba(236, 72, 153, 0.2); color: #ec4899;">
-                    <i class="fas fa-trending-up"></i>
-                </div>
-                <div class="stat-val"><?php echo $growthRate; ?></div>
-                <div class="stat-label">Monthly Growth</div>
-            </div>
-
-            <div class="glass-card action-card">
-                <div style="text-align: center;">
-                    <h3 style="margin-bottom: 20px;">System Entry Points</h3>
-                    <div style="display: flex; gap: 20px;">
-                        <a href="login.php?role=admin" class="btn-premium btn-admin">
-                            <i class="fas fa-shield-halved"></i> Admin Portal
-                        </a>
-                        <a href="login.php?role=gymnast" class="btn-premium btn-gymnast">
-                            <i class="fas fa-user-graduate"></i> Gymnast Access
-                        </a>
+                <div style="margin-top: 40px; border-top: 1px solid #eee; padding-top: 30px;">
+                    <p style="font-size: 0.85rem; color: var(--text-light); font-weight: 600; margin-bottom: 15px;">CORE MODULES</p>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                        <div style="font-size: 0.9rem;"><i class="fas fa-check-circle" style="color: #10b981;"></i> Automated Invoicing</div>
+                        <div style="font-size: 0.9rem;"><i class="fas fa-check-circle" style="color: #10b981;"></i> Skill Tracking</div>
+                        <div style="font-size: 0.9rem;"><i class="fas fa-check-circle" style="color: #10b981;"></i> Event Scheduler</div>
+                        <div style="font-size: 0.9rem;"><i class="fas fa-check-circle" style="color: #10b981;"></i> Parent Messaging</div>
                     </div>
                 </div>
             </div>
 
-            <div class="glass-card">
-                <i class="fas fa-file-invoice-dollar" style="font-size: 24px; color: var(--primary); margin-bottom: 15px;"></i>
-                <h4>Financial Tracking</h4>
-                <p style="color: var(--text-dim); font-size: 14px; margin-top: 10px;">Automated tuition billing and membership renewals with PDF invoicing.</p>
-            </div>
-
-            <div class="glass-card">
-                <i class="fas fa-medal" style="font-size: 24px; color: #fbbf24; margin-bottom: 15px;"></i>
-                <h4>Skill Assessment</h4>
-                <p style="color: var(--text-dim); font-size: 14px; margin-top: 10px;">Track level advancement, move-up requirements, and skill mastery.</p>
-            </div>
-
-            <div class="glass-card">
-                <i class="fas fa-calendar-check" style="font-size: 24px; color: var(--accent); margin-bottom: 15px;"></i>
-                <h4>Event Management</h4>
-                <p style="color: var(--text-dim); font-size: 14px; margin-top: 10px;">Schedule meets, workshops, and intensive training camps.</p>
+            <div class="features">
+                <div class="feature-item">
+                    <i class="fas fa-file-invoice-dollar"></i>
+                    <div>
+                        <strong style="display:block">Financial Control</strong>
+                        <span style="color: var(--text-light)">Review pending tuitions and generate monthly reports.</span>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <i class="fas fa-trophy"></i>
+                    <div>
+                        <strong style="display:block">Achievement Engine</strong>
+                        <span style="color: var(--text-light)">Automated notifications for gymnast level-ups.</span>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <i class="fas fa-calendar-alt"></i>
+                    <div>
+                        <strong style="display:block">Meet Management</strong>
+                        <span style="color: var(--text-light)">Coordinate regional competitions and registration.</span>
+                    </div>
+                </div>
             </div>
         </div>
-    </main>
+    </div>
 
-    <script>
-        // Subtle Mouse Move Effect for the Mesh Gradient
-        document.addEventListener('mousemove', (e) => {
-            const x = e.clientX / window.innerWidth;
-            const y = e.clientY / window.innerHeight;
-            
-            document.querySelector('.mesh-gradient').style.transform = 
-                `translate(${x * 20}px, ${y * 20}px) scale(1.1)`;
-        });
-    </script>
+    <footer style="margin-top: auto; padding: 40px; text-align: center; color: var(--text-light); font-size: 0.85rem;">
+        &copy; 2024 Elite Gymnastics Sports Academy. All Rights Reserved.
+    </footer>
+
 </body>
 </html>
