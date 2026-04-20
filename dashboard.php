@@ -41,6 +41,7 @@ function generateRandomPassword($length = 8) {
 $registerErrors = [];
 $registerSuccess = false;
 $generatedPassword = '';
+$successMessage = '';
 
 if ($isAdmin && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'register') {
     $full_name = trim($_POST['full_name'] ?? '');
@@ -53,6 +54,7 @@ if ($isAdmin && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])
     
     if (empty($username) && !empty($full_name)) {
         $username = strtolower(str_replace(' ', '.', $full_name));
+        $username = preg_replace('/\.+/', '.', $username);
     }
     
     $generatedPassword = generateRandomPassword(10);
@@ -70,7 +72,7 @@ if ($isAdmin && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])
         $check_sql = "SELECT id FROM users WHERE username = ?";
         $check_stmt = $db->executeQuery($check_sql, "s", [$username]);
         if ($check_stmt && $check_stmt->get_result()->num_rows > 0) {
-            $registerErrors[] = "Username already exists.";
+            $registerErrors[] = "Username already exists. Please choose a different username.";
         }
     }
     
@@ -103,8 +105,12 @@ if ($isAdmin && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])
                 if ($user_stmt && $user_stmt->affected_rows > 0) {
                     $db->getConnection()->commit();
                     $registerSuccess = true;
-                    $_SESSION['success'] = "Gymnast registered successfully! Password: " . $generatedPassword;
-                    header('Location: dashboard.php');
+                    $successMessage = "Gymnast registered successfully!<br><strong>Username:</strong> " . htmlspecialchars($username) . "<br><strong>Password:</strong> " . $generatedPassword;
+                    // DO NOT redirect - stay on the same page to keep admin logged in
+                    // Just set success message and refresh the page data
+                    $_SESSION['registration_success'] = $successMessage;
+                    // Refresh the page to show updated list without logging out
+                    echo '<script>window.location.href = "dashboard.php";</script>';
                     exit();
                 } else {
                     throw new Exception("Failed to create user account");
@@ -117,6 +123,12 @@ if ($isAdmin && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])
             $registerErrors[] = "Registration failed: " . $e->getMessage();
         }
     }
+}
+
+// Check for success message in session
+if (isset($_SESSION['registration_success'])) {
+    $successMessage = $_SESSION['registration_success'];
+    unset($_SESSION['registration_success']);
 }
 ?>
 <!DOCTYPE html>
@@ -254,6 +266,21 @@ if ($isAdmin && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])
         .welcome-banner p {
             color: #a0aec0;
             font-size: 15px;
+        }
+        
+        /* Success Message */
+        .success-message {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(16, 185, 129, 0.05));
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 28px;
+            color: #34d399;
+        }
+        
+        .success-message i {
+            margin-right: 10px;
+            font-size: 20px;
         }
         
         /* Stats Grid */
@@ -847,6 +874,23 @@ if ($isAdmin && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])
             color: #94a3b8;
         }
         
+        /* Print styles for better PDF generation */
+        @media print {
+            .navbar, .filter-bar, .action-buttons, .btn-export, .btn-primary, .test-credentials, .close {
+                display: none !important;
+            }
+            .profile-card, .program-card, .table-card {
+                break-inside: avoid;
+                page-break-inside: avoid;
+            }
+            body {
+                background: white;
+            }
+            .welcome-banner h1 {
+                -webkit-text-fill-color: #667eea;
+            }
+        }
+        
         @media (max-width: 768px) {
             .form-row {
                 grid-template-columns: 1fr;
@@ -896,6 +940,14 @@ if ($isAdmin && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])
         </div>
         
         <?php if ($isAdmin): ?>
+        <!-- Success Message -->
+        <?php if ($successMessage): ?>
+        <div class="success-message">
+            <i class="fas fa-check-circle"></i> 
+            <?php echo $successMessage; ?>
+        </div>
+        <?php endif; ?>
+        
         <!-- Test Credentials Info Box -->
         <div class="test-credentials">
             <h4><i class="fas fa-flask"></i> Test Credentials</h4>
@@ -921,42 +973,18 @@ if ($isAdmin && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])
         </div>
         
         <!-- Register New Gymnast Form -->
-        <div class="table-card" style="margin-bottom: 35px;">
-            <div class="table-header"><h2><i class="fas fa-user-plus"></i> Register New Gymnast</h2></div>
-            <?php if (!empty($registerErrors)): ?>
-                <div style="background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: 14px; padding: 16px; margin-bottom: 20px; color: #f87171;">
-                    <?php foreach ($registerErrors as $error): echo "<p>• $error</p>"; endforeach; ?>
-                </div>
-            <?php endif; ?>
-            <form method="POST" action="">
-                <input type="hidden" name="action" value="register">
-                <div class="form-row">
-                    <div class="form-group"><label>Full Name <span class="required">*</span></label><input type="text" name="full_name" placeholder="Enter full name" required></div>
-                    <div class="form-group"><label>Email <span class="required">*</span></label><input type="email" name="email" placeholder="student@example.com" required></div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group"><label>Contact Number <span class="required">*</span></label><input type="tel" name="contact_no" placeholder="+1234567890" required></div>
-                    <div class="form-group"><label>Username</label><input type="text" name="username" placeholder="Leave empty for auto-generation"></div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group"><label>Date of Birth <span class="required">*</span></label><input type="date" name="date_of_birth" required></div>
-                    <div class="form-group"><label>Training Program <span class="required">*</span></label>
-                        <select name="training_program" required>
-                            <option value="">Select Program</option>
-                            <option value="Beginner">🥇 Beginner</option>
-                            <option value="Intermediate">🥈 Intermediate</option>
-                            <option value="Advanced">🥉 Advanced</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group"><label>Enrollment Date <span class="required">*</span></label><input type="date" name="enrollment_date" value="<?php echo date('Y-m-d'); ?>" required></div>
-                    <div class="form-group"><label>Password</label><input type="text" disabled value="Auto-generated (10 chars)"></div>
-                </div>
-                <button type="submit" class="btn-primary"><i class="fas fa-save"></i> Register Gymnast</button>
-            </form>
-            <div class="info-text"><i class="fas fa-info-circle"></i> Password will be auto-generated and shown after successful registration. Username auto-generated from full name if left empty.</div>
-        </div>
+      <!-- Register New Gymnast Section -->
+<div class="table-card" style="margin-bottom: 35px;">
+    <div class="table-header">
+        <h2><i class="fas fa-user-plus"></i> Register New Gymnast</h2>
+        <a href="register_gymnast.php" class="btn-primary" style="text-decoration: none; display: inline-flex; align-items: center; gap: 8px;">
+            <i class="fas fa-plus-circle"></i> Register New Gymnast
+        </a>
+    </div>
+    <div class="info-text">
+        <i class="fas fa-info-circle"></i> Click the button above to register a new gymnast. You will be redirected to the registration form with all required fields.
+    </div>
+</div>
         
         <!-- Gymnasts List -->
         <div class="table-card">
@@ -970,7 +998,17 @@ if ($isAdmin && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])
             </div>
             <div style="overflow-x: auto;">
                 <table class="data-table" id="gymnastTable">
-                    <thead><tr><th onclick="sortTable(0)">Name <i class="fas fa-sort"></i></th><th onclick="sortTable(1)">Membership ID <i class="fas fa-sort"></i></th><th>Email</th><th>Contact</th><th onclick="sortTable(4)">Program <i class="fas fa-sort"></i></th><th onclick="sortTable(5)">Status <i class="fas fa-sort"></i></th><th>Actions</th></tr></thead>
+                    <thead>
+                        <tr>
+                            <th onclick="sortTable(0)">Name <i class="fas fa-sort"></i></th>
+                            <th onclick="sortTable(1)">Membership ID <i class="fas fa-sort"></i></th>
+                            <th>Email</th>
+                            <th>Contact</th>
+                            <th onclick="sortTable(4)">Program <i class="fas fa-sort"></i></th>
+                            <th onclick="sortTable(5)">Status <i class="fas fa-sort"></i></th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
                     <tbody id="tableBody">
                         <?php foreach ($gymnasts as $gymnast): ?>
                         <tr data-program="<?php echo $gymnast['training_program']; ?>" data-status="<?php echo $gymnast['progress_status']; ?>">
@@ -994,32 +1032,108 @@ if ($isAdmin && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])
         </div>
         
         <?php else: ?>
-        <!-- Gymnast Dashboard -->
-        <?php if ($myProfile): ?>
+        <!-- Gymnast Dashboard with Enhanced Reports -->
         <div class="programs-section">
-            <div class="program-card"><div class="program-header"><div class="program-icon beginner"><i class="fas fa-id-card"></i></div><div><button onclick="viewProfileReport()" class="action-btn btn-view">View</button><button onclick="downloadProfileReport()" class="btn-export" style="margin-left: 8px;"><i class="fas fa-download"></i> PDF</button></div></div><h3 style="color:white; margin-top:15px;">Profile Summary Report</h3><p style="color:#94a3b8; font-size:13px; margin-top:8px;">View and download your complete profile information.</p></div>
-            <div class="program-card"><div class="program-header"><div class="program-icon intermediate"><i class="fas fa-receipt"></i></div><div><button onclick="viewEnrollmentSlip()" class="action-btn btn-view">View</button><button onclick="downloadEnrollmentSlip()" class="btn-export" style="margin-left: 8px;"><i class="fas fa-download"></i> PDF</button></div></div><h3 style="color:white; margin-top:15px;">Enrollment Confirmation</h3><p style="color:#94a3b8; font-size:13px; margin-top:8px;">Official enrollment confirmation with registration details.</p></div>
-        </div>
-        
-        <div class="profile-card" id="profileReportContent">
-            <div class="profile-header"><div class="profile-avatar"><i class="fas fa-user-circle"></i></div><div class="profile-info"><h2><?php echo htmlspecialchars($myProfile['full_name']); ?></h2><p class="membership-id">Member ID: <?php echo $myProfile['membership_id']; ?></p><span class="status-badge status-<?php echo strtolower(str_replace(' ', '', $myProfile['progress_status'])); ?>"><i class="fas <?php echo $myProfile['progress_status'] == 'Active' ? 'fa-check-circle' : ($myProfile['progress_status'] == 'On Hold' ? 'fa-pause-circle' : 'fa-check-double'); ?>"></i> <?php echo $myProfile['progress_status']; ?></span></div></div>
-            <div class="profile-details">
-                <div class="detail-item"><div class="detail-label">Email</div><div class="detail-value"><?php echo htmlspecialchars($myProfile['email']); ?></div></div>
-                <div class="detail-item"><div class="detail-label">Contact Number</div><div class="detail-value"><?php echo htmlspecialchars($myProfile['contact_no']); ?></div></div>
-                <div class="detail-item"><div class="detail-label">Date of Birth</div><div class="detail-value"><?php echo date('F j, Y', strtotime($myProfile['date_of_birth'])); ?></div></div>
-                <div class="detail-item"><div class="detail-label">Training Program</div><div class="detail-value"><span class="program-badge program-<?php echo strtolower($myProfile['training_program']); ?>"><?php echo $myProfile['training_program']; ?></span></div></div>
-                <div class="detail-item"><div class="detail-label">Enrollment Date</div><div class="detail-value"><?php echo date('F j, Y', strtotime($myProfile['enrollment_date'])); ?></div></div>
-                <div class="detail-item"><div class="detail-label">Member Since</div><div class="detail-value"><?php echo date('F j, Y', strtotime($myProfile['created_at'])); ?></div></div>
+            <!-- Report 1: Profile Summary Card -->
+            <div class="program-card">
+                <div class="program-header">
+                    <div class="program-icon beginner"><i class="fas fa-id-card"></i></div>
+                    <div>
+                        <button onclick="viewProfileReport()" class="action-btn btn-view"><i class="fas fa-eye"></i> View</button>
+                        <button onclick="downloadProfileReport()" class="btn-export" style="margin-left: 8px;"><i class="fas fa-download"></i> PDF</button>
+                    </div>
+                </div>
+                <h3 style="color:white; margin-top:15px;">Profile Summary Report</h3>
+                <p style="color:#94a3b8; font-size:13px; margin-top:8px;">Complete profile information including membership details, personal info, and training program.</p>
+                <div class="info-text" style="margin-top: 15px;">
+                    <i class="fas fa-info-circle"></i> Includes: Name, Membership ID, Email, DOB, Training Program, Enrollment Date
+                </div>
+            </div>
+            
+            <!-- Report 2: Enrollment Confirmation Slip -->
+            <div class="program-card">
+                <div class="program-header">
+                    <div class="program-icon intermediate"><i class="fas fa-receipt"></i></div>
+                    <div>
+                        <button onclick="viewEnrollmentSlip()" class="action-btn btn-view"><i class="fas fa-eye"></i> View</button>
+                        <button onclick="downloadEnrollmentSlip()" class="btn-export" style="margin-left: 8px;"><i class="fas fa-download"></i> PDF</button>
+                    </div>
+                </div>
+                <h3 style="color:white; margin-top:15px;">Enrollment Confirmation</h3>
+                <p style="color:#94a3b8; font-size:13px; margin-top:8px;">Official enrollment confirmation with registration timestamp and course summary.</p>
+                <div class="info-text" style="margin-top: 15px;">
+                    <i class="fas fa-info-circle"></i> Includes: Registration timestamp, Course summary, Status, Confirmation number
+                </div>
             </div>
         </div>
         
-        <!-- Program Analytics -->
+        <!-- Profile Display Area -->
+        <?php if ($myProfile): ?>
+        <div class="profile-card" id="profileReportContent">
+            <div class="profile-header">
+                <div class="profile-avatar"><i class="fas fa-user-circle"></i></div>
+                <div class="profile-info">
+                    <h2><?php echo htmlspecialchars($myProfile['full_name']); ?></h2>
+                    <p class="membership-id">Member ID: <?php echo $myProfile['membership_id']; ?></p>
+                    <span class="status-badge status-<?php echo strtolower(str_replace(' ', '', $myProfile['progress_status'])); ?>">
+                        <i class="fas <?php echo $myProfile['progress_status'] == 'Active' ? 'fa-check-circle' : ($myProfile['progress_status'] == 'On Hold' ? 'fa-pause-circle' : 'fa-check-double'); ?>"></i> 
+                        <?php echo $myProfile['progress_status']; ?>
+                    </span>
+                </div>
+            </div>
+            <div class="profile-details">
+                <div class="detail-item">
+                    <div class="detail-label"><i class="fas fa-envelope"></i> Email</div>
+                    <div class="detail-value"><?php echo htmlspecialchars($myProfile['email']); ?></div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label"><i class="fas fa-phone"></i> Contact Number</div>
+                    <div class="detail-value"><?php echo htmlspecialchars($myProfile['contact_no']); ?></div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label"><i class="fas fa-calendar-alt"></i> Date of Birth</div>
+                    <div class="detail-value"><?php echo date('F j, Y', strtotime($myProfile['date_of_birth'])); ?></div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label"><i class="fas fa-chalkboard-user"></i> Training Program</div>
+                    <div class="detail-value"><span class="program-badge program-<?php echo strtolower($myProfile['training_program']); ?>"><?php echo $myProfile['training_program']; ?></span></div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label"><i class="fas fa-calendar-check"></i> Enrollment Date</div>
+                    <div class="detail-value"><?php echo date('F j, Y', strtotime($myProfile['enrollment_date'])); ?></div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label"><i class="fas fa-clock"></i> Member Since</div>
+                    <div class="detail-value"><?php echo date('F j, Y g:i A', strtotime($myProfile['created_at'])); ?></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Academy Program Analytics -->
         <div class="table-card">
             <h2 style="color:white; margin-bottom:24px;"><i class="fas fa-chart-line"></i> Academy Program Analytics</h2>
             <div class="stats-grid" style="margin-bottom:0;">
-                <div class="stat-card"><div class="stat-icon beginner"><i class="fas fa-seedling"></i></div><div class="stat-info"><h3>Beginner Program</h3><div class="stat-number"><?php echo $beginnerCount; ?></div></div></div>
-                <div class="stat-card"><div class="stat-icon intermediate"><i class="fas fa-chart-line"></i></div><div class="stat-info"><h3>Intermediate Program</h3><div class="stat-number"><?php echo $intermediateCount; ?></div></div></div>
-                <div class="stat-card"><div class="stat-icon advanced"><i class="fas fa-trophy"></i></div><div class="stat-info"><h3>Advanced Program</h3><div class="stat-number"><?php echo $advancedCount; ?></div></div></div>
+                <div class="stat-card">
+                    <div class="stat-icon beginner"><i class="fas fa-seedling"></i></div>
+                    <div class="stat-info">
+                        <h3>Beginner Program</h3>
+                        <div class="stat-number"><?php echo $beginnerCount; ?></div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon intermediate"><i class="fas fa-chart-line"></i></div>
+                    <div class="stat-info">
+                        <h3>Intermediate Program</h3>
+                        <div class="stat-number"><?php echo $intermediateCount; ?></div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon advanced"><i class="fas fa-trophy"></i></div>
+                    <div class="stat-info">
+                        <h3>Advanced Program</h3>
+                        <div class="stat-number"><?php echo $advancedCount; ?></div>
+                    </div>
+                </div>
             </div>
         </div>
         <?php endif; ?>
@@ -1027,8 +1141,31 @@ if ($isAdmin && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])
     </div>
     
     <!-- Premium Modals -->
-    <div id="viewModal" class="modal"><div class="modal-content"><div class="modal-header"><span class="close" onclick="closeViewModal()">&times;</span><h3><i class="fas fa-user-circle"></i> Gymnast Details</h3></div><div class="modal-body" id="viewModalContent"></div></div></div>
-    <div id="deleteModal" class="modal"><div class="modal-content"><div class="modal-header"><span class="close" onclick="closeDeleteModal()">&times;</span><h3><i class="fas fa-exclamation-triangle"></i> Confirm Deletion</h3></div><div class="modal-body"><p id="deleteMessage" style="margin-bottom: 24px; color: #e2e8f0;">Are you sure?</p><div style="display:flex; gap:12px; justify-content:flex-end;"><button onclick="closeDeleteModal()" class="btn-reset">Cancel</button><button id="confirmDeleteBtn" class="btn-delete" style="padding:10px 24px;">Delete Permanently</button></div></div></div></div>
+    <div id="viewModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="close" onclick="closeViewModal()">&times;</span>
+                <h3><i class="fas fa-user-circle"></i> Gymnast Details</h3>
+            </div>
+            <div class="modal-body" id="viewModalContent"></div>
+        </div>
+    </div>
+    
+    <div id="deleteModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="close" onclick="closeDeleteModal()">&times;</span>
+                <h3><i class="fas fa-exclamation-triangle"></i> Confirm Deletion</h3>
+            </div>
+            <div class="modal-body">
+                <p id="deleteMessage" style="margin-bottom: 24px; color: #e2e8f0;">Are you sure?</p>
+                <div style="display:flex; gap:12px; justify-content:flex-end;">
+                    <button onclick="closeDeleteModal()" class="btn-reset">Cancel</button>
+                    <button id="confirmDeleteBtn" class="btn-delete" style="padding:10px 24px;">Delete Permanently</button>
+                </div>
+            </div>
+        </div>
+    </div>
     
     <script>
         let deleteId = null;
@@ -1174,13 +1311,37 @@ if ($isAdmin && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])
                     <p style="color:#c4b5fd;">Member ID: ${gymnastData.membership_id}</p>
                 </div>
                 <div style="display:grid; gap:12px;">
-                    <div style="display:flex; justify-content:space-between; padding:14px; background:rgba(255,255,255,0.05); border-radius:14px;"><strong style="color:#a78bfa;">Email:</strong> <span style="color:white;">${gymnastData.email}</span></div>
-                    <div style="display:flex; justify-content:space-between; padding:14px; background:rgba(255,255,255,0.05); border-radius:14px;"><strong style="color:#a78bfa;">Contact:</strong> <span style="color:white;">${gymnastData.contact_no}</span></div>
-                    <div style="display:flex; justify-content:space-between; padding:14px; background:rgba(255,255,255,0.05); border-radius:14px;"><strong style="color:#a78bfa;">DOB:</strong> <span style="color:white;">${gymnastData.date_of_birth}</span></div>
-                    <div style="display:flex; justify-content:space-between; padding:14px; background:rgba(255,255,255,0.05); border-radius:14px;"><strong style="color:#a78bfa;">Program:</strong> <span style="color:white;">${gymnastData.training_program}</span></div>
-                    <div style="display:flex; justify-content:space-between; padding:14px; background:rgba(255,255,255,0.05); border-radius:14px;"><strong style="color:#a78bfa;">Enrolled:</strong> <span style="color:white;">${gymnastData.enrollment_date}</span></div>
-                    <div style="display:flex; justify-content:space-between; padding:14px; background:rgba(255,255,255,0.05); border-radius:14px;"><strong style="color:#a78bfa;">Status:</strong> <span style="color:white;">${gymnastData.progress_status}</span></div>
-                    <div style="display:flex; justify-content:space-between; padding:14px; background:rgba(255,255,255,0.05); border-radius:14px;"><strong style="color:#a78bfa;">Member Since:</strong> <span style="color:white;">${gymnastData.created_at}</span></div>
+                    <div style="display:flex; justify-content:space-between; padding:14px; background:rgba(255,255,255,0.05); border-radius:14px;">
+                        <strong style="color:#a78bfa;"><i class="fas fa-envelope"></i> Email:</strong> 
+                        <span style="color:white;">${gymnastData.email}</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; padding:14px; background:rgba(255,255,255,0.05); border-radius:14px;">
+                        <strong style="color:#a78bfa;"><i class="fas fa-phone"></i> Contact:</strong> 
+                        <span style="color:white;">${gymnastData.contact_no}</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; padding:14px; background:rgba(255,255,255,0.05); border-radius:14px;">
+                        <strong style="color:#a78bfa;"><i class="fas fa-calendar-alt"></i> DOB:</strong> 
+                        <span style="color:white;">${gymnastData.date_of_birth}</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; padding:14px; background:rgba(255,255,255,0.05); border-radius:14px;">
+                        <strong style="color:#a78bfa;"><i class="fas fa-chalkboard-user"></i> Program:</strong> 
+                        <span style="color:white;">${gymnastData.training_program}</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; padding:14px; background:rgba(255,255,255,0.05); border-radius:14px;">
+                        <strong style="color:#a78bfa;"><i class="fas fa-calendar-check"></i> Enrolled:</strong> 
+                        <span style="color:white;">${gymnastData.enrollment_date}</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; padding:14px; background:rgba(255,255,255,0.05); border-radius:14px;">
+                        <strong style="color:#a78bfa;"><i class="fas fa-chart-line"></i> Status:</strong> 
+                        <span style="color:white;">${gymnastData.progress_status}</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; padding:14px; background:rgba(255,255,255,0.05); border-radius:14px;">
+                        <strong style="color:#a78bfa;"><i class="fas fa-clock"></i> Member Since:</strong> 
+                        <span style="color:white;">${gymnastData.created_at}</span>
+                    </div>
+                </div>
+                <div style="margin-top:20px; text-align:center; font-size:12px; color:#94a3b8; padding-top:20px; border-top:1px solid rgba(255,255,255,0.1);">
+                    <p>Generated: ${new Date().toLocaleString()}</p>
                 </div>
             `;
             modal.style.display = 'block';
@@ -1190,40 +1351,154 @@ if ($isAdmin && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])
             const div = document.createElement('div');
             div.style.padding = '30px';
             div.style.fontFamily = 'Inter, sans-serif';
-            div.innerHTML = `<div style="background:linear-gradient(135deg,#667eea,#764ba2);padding:40px;border-radius:20px;color:white;text-align:center;"><h2>${gymnastData.full_name}</h2><p>Member ID: ${gymnastData.membership_id}</p></div><h3 style="margin-top:20px;">Profile Summary</h3><div style="margin-top:20px;"><div style="display:flex;justify-content:space-between;padding:12px;border-bottom:1px solid #e2e8f0;"><strong>Email:</strong> ${gymnastData.email}</div><div style="display:flex;justify-content:space-between;padding:12px;border-bottom:1px solid #e2e8f0;"><strong>Contact:</strong> ${gymnastData.contact_no}</div><div style="display:flex;justify-content:space-between;padding:12px;border-bottom:1px solid #e2e8f0;"><strong>DOB:</strong> ${gymnastData.date_of_birth}</div><div style="display:flex;justify-content:space-between;padding:12px;border-bottom:1px solid #e2e8f0;"><strong>Program:</strong> ${gymnastData.training_program}</div><div style="display:flex;justify-content:space-between;padding:12px;border-bottom:1px solid #e2e8f0;"><strong>Enrolled:</strong> ${gymnastData.enrollment_date}</div><div style="display:flex;justify-content:space-between;padding:12px;"><strong>Status:</strong> ${gymnastData.progress_status}</div></div><div style="margin-top:30px;text-align:center;font-size:12px;"><p>Generated: ${new Date().toLocaleString()}</p><p>© Gymnastics Academy</p></div>`;
-            html2pdf().set({margin:0.5, filename:`Profile_${gymnastData.membership_id}.pdf`, image:{type:'jpeg',quality:0.98}, html2canvas:{scale:2}, jsPDF:{unit:'in',format:'a4',orientation:'portrait'}}).from(div).save();
+            div.style.background = 'white';
+            div.innerHTML = `
+                <div style="background:linear-gradient(135deg,#667eea,#764ba2); padding:40px; border-radius:20px; color:white; text-align:center;">
+                    <h1 style="margin:0;">Gymnastics Academy</h1>
+                    <p style="margin-top:10px;">Profile Summary Report</p>
+                </div>
+                <div style="text-align:center; margin:30px 0;">
+                    <h2>${gymnastData.full_name}</h2>
+                    <p><strong>Member ID:</strong> ${gymnastData.membership_id}</p>
+                </div>
+                <div style="margin-top:20px;">
+                    <div style="display:flex; justify-content:space-between; padding:12px; border-bottom:1px solid #e2e8f0;">
+                        <strong>Email:</strong> ${gymnastData.email}
+                    </div>
+                    <div style="display:flex; justify-content:space-between; padding:12px; border-bottom:1px solid #e2e8f0;">
+                        <strong>Contact Number:</strong> ${gymnastData.contact_no}
+                    </div>
+                    <div style="display:flex; justify-content:space-between; padding:12px; border-bottom:1px solid #e2e8f0;">
+                        <strong>Date of Birth:</strong> ${gymnastData.date_of_birth}
+                    </div>
+                    <div style="display:flex; justify-content:space-between; padding:12px; border-bottom:1px solid #e2e8f0;">
+                        <strong>Training Program:</strong> ${gymnastData.training_program}
+                    </div>
+                    <div style="display:flex; justify-content:space-between; padding:12px; border-bottom:1px solid #e2e8f0;">
+                        <strong>Enrollment Date:</strong> ${gymnastData.enrollment_date}
+                    </div>
+                    <div style="display:flex; justify-content:space-between; padding:12px; border-bottom:1px solid #e2e8f0;">
+                        <strong>Status:</strong> ${gymnastData.progress_status}
+                    </div>
+                    <div style="display:flex; justify-content:space-between; padding:12px;">
+                        <strong>Member Since:</strong> ${gymnastData.created_at}
+                    </div>
+                </div>
+                <div style="margin-top:30px; text-align:center; font-size:12px; color:#666;">
+                    <p>Generated: ${new Date().toLocaleString()}</p>
+                    <p>© Gymnastics Academy - Official Document</p>
+                </div>
+            `;
+            html2pdf().set({
+                margin: 0.5,
+                filename: `Profile_${gymnastData.membership_id}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2 },
+                jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+            }).from(div).save();
         }
         
         function viewEnrollmentSlip() {
-            const confNum = 'CONF-' + Math.random().toString(36).substring(2,10).toUpperCase();
+            const confNum = 'ENR-' + new Date().getFullYear() + '-' + Math.random().toString(36).substring(2,10).toUpperCase();
             const modal = document.getElementById('viewModal');
             const content = document.getElementById('viewModalContent');
             content.innerHTML = `
                 <div style="text-align:center; margin-bottom:20px;">
-                    <h2 style="color:#a78bfa;">Gymnastics Academy</h2>
-                    <p>Official Enrollment Confirmation</p>
+                    <h2 style="color:#a78bfa; margin-bottom:5px;">Gymnastics Academy</h2>
+                    <p style="color:#94a3b8;">Official Enrollment Confirmation</p>
                 </div>
                 <div style="background:rgba(255,255,255,0.05); padding:20px; border-radius:16px;">
-                    <div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.1);"><strong style="color:#a78bfa;">Confirmation:</strong> <span style="color:white;">${confNum}</span></div>
-                    <div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.1);"><strong style="color:#a78bfa;">Registration:</strong> <span style="color:white;">${gymnastData.created_at}</span></div>
-                    <div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.1);"><strong style="color:#a78bfa;">Name:</strong> <span style="color:white;">${gymnastData.full_name}</span></div>
-                    <div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.1);"><strong style="color:#a78bfa;">Member ID:</strong> <span style="color:white;">${gymnastData.membership_id}</span></div>
-                    <div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.1);"><strong style="color:#a78bfa;">Program:</strong> <span style="color:white;">${gymnastData.training_program}</span></div>
-                    <div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.1);"><strong style="color:#a78bfa;">Enrolled:</strong> <span style="color:white;">${gymnastData.enrollment_date}</span></div>
-                    <div style="display:flex; justify-content:space-between; padding:10px 0;"><strong style="color:#a78bfa;">Status:</strong> <span style="color:white;">${gymnastData.progress_status}</span></div>
+                    <div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.1);">
+                        <strong style="color:#a78bfa;">Confirmation Number:</strong> 
+                        <span style="color:white;">${confNum}</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.1);">
+                        <strong style="color:#a78bfa;">Registration Timestamp:</strong> 
+                        <span style="color:white;">${gymnastData.created_at}</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.1);">
+                        <strong style="color:#a78bfa;">Student Name:</strong> 
+                        <span style="color:white;">${gymnastData.full_name}</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.1);">
+                        <strong style="color:#a78bfa;">Member ID:</strong> 
+                        <span style="color:white;">${gymnastData.membership_id}</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.1);">
+                        <strong style="color:#a78bfa;">Course/Program:</strong> 
+                        <span style="color:white;">${gymnastData.training_program} Program</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.1);">
+                        <strong style="color:#a78bfa;">Enrollment Date:</strong> 
+                        <span style="color:white;">${gymnastData.enrollment_date}</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.1);">
+                        <strong style="color:#a78bfa;">Status:</strong> 
+                        <span style="color:white;">${gymnastData.progress_status}</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; padding:10px 0;">
+                        <strong style="color:#a78bfa;">Contact:</strong> 
+                        <span style="color:white;">${gymnastData.contact_no}</span>
+                    </div>
                 </div>
-                <div style="margin-top:20px; text-align:center; font-size:12px; color:#94a3b8;"><p>Electronically generated confirmation slip.</p></div>
+                <div style="margin-top:20px; text-align:center; font-size:12px; color:#94a3b8;">
+                    <p><i class="fas fa-check-circle" style="color:#34d399;"></i> This is an electronically generated confirmation slip.</p>
+                    <p style="margin-top:5px;">Valid for official purposes within Gymnastics Academy.</p>
+                </div>
             `;
             modal.style.display = 'block';
         }
         
         function downloadEnrollmentSlip() {
-            const confNum = 'CONF-' + Math.random().toString(36).substring(2,10).toUpperCase();
+            const confNum = 'ENR-' + new Date().getFullYear() + '-' + Math.random().toString(36).substring(2,10).toUpperCase();
             const div = document.createElement('div');
             div.style.padding = '30px';
             div.style.fontFamily = 'Inter, sans-serif';
-            div.innerHTML = `<div style="text-align:center;"><h1 style="color:#667eea;">Gymnastics Academy</h1><p>Official Enrollment Confirmation</p></div><div style="margin-top:20px;"><div style="display:flex;justify-content:space-between;padding:12px;border-bottom:1px solid #e2e8f0;"><strong>Confirmation:</strong> ${confNum}</div><div style="display:flex;justify-content:space-between;padding:12px;border-bottom:1px solid #e2e8f0;"><strong>Registration:</strong> ${gymnastData.created_at}</div><div style="display:flex;justify-content:space-between;padding:12px;border-bottom:1px solid #e2e8f0;"><strong>Name:</strong> ${gymnastData.full_name}</div><div style="display:flex;justify-content:space-between;padding:12px;border-bottom:1px solid #e2e8f0;"><strong>Member ID:</strong> ${gymnastData.membership_id}</div><div style="display:flex;justify-content:space-between;padding:12px;border-bottom:1px solid #e2e8f0;"><strong>Program:</strong> ${gymnastData.training_program}</div><div style="display:flex;justify-content:space-between;padding:12px;border-bottom:1px solid #e2e8f0;"><strong>Enrolled:</strong> ${gymnastData.enrollment_date}</div><div style="display:flex;justify-content:space-between;padding:12px;"><strong>Status:</strong> ${gymnastData.progress_status}</div></div><div style="margin-top:30px;text-align:center;font-size:12px;"><p>Generated: ${new Date().toLocaleString()}</p><p>© Gymnastics Academy</p></div>`;
-            html2pdf().set({margin:0.5, filename:`Enrollment_${gymnastData.membership_id}.pdf`, image:{type:'jpeg',quality:0.98}, html2canvas:{scale:2}, jsPDF:{unit:'in',format:'a4',orientation:'portrait'}}).from(div).save();
+            div.style.background = 'white';
+            div.innerHTML = `
+                <div style="text-align:center; border-bottom:2px solid #667eea; padding-bottom:20px; margin-bottom:20px;">
+                    <h1 style="color:#667eea; margin:0;">Gymnastics Academy</h1>
+                    <p style="margin:5px 0 0 0;">Official Enrollment Confirmation Slip</p>
+                </div>
+                <div style="margin-top:20px;">
+                    <div style="display:flex; justify-content:space-between; padding:12px; border-bottom:1px solid #e2e8f0;">
+                        <strong>Confirmation Number:</strong> ${confNum}
+                    </div>
+                    <div style="display:flex; justify-content:space-between; padding:12px; border-bottom:1px solid #e2e8f0;">
+                        <strong>Registration Timestamp:</strong> ${gymnastData.created_at}
+                    </div>
+                    <div style="display:flex; justify-content:space-between; padding:12px; border-bottom:1px solid #e2e8f0;">
+                        <strong>Student Name:</strong> ${gymnastData.full_name}
+                    </div>
+                    <div style="display:flex; justify-content:space-between; padding:12px; border-bottom:1px solid #e2e8f0;">
+                        <strong>Member ID:</strong> ${gymnastData.membership_id}
+                    </div>
+                    <div style="display:flex; justify-content:space-between; padding:12px; border-bottom:1px solid #e2e8f0;">
+                        <strong>Course Summary:</strong> ${gymnastData.training_program} Training Program
+                    </div>
+                    <div style="display:flex; justify-content:space-between; padding:12px; border-bottom:1px solid #e2e8f0;">
+                        <strong>Enrollment Date:</strong> ${gymnastData.enrollment_date}
+                    </div>
+                    <div style="display:flex; justify-content:space-between; padding:12px; border-bottom:1px solid #e2e8f0;">
+                        <strong>Status:</strong> ${gymnastData.progress_status}
+                    </div>
+                    <div style="display:flex; justify-content:space-between; padding:12px;">
+                        <strong>Contact:</strong> ${gymnastData.contact_no}
+                    </div>
+                </div>
+                <div style="margin-top:30px; text-align:center; font-size:12px; color:#666;">
+                    <p>Generated: ${new Date().toLocaleString()}</p>
+                    <p>© Gymnastics Academy - Official Document</p>
+                    <p style="margin-top:20px;">This confirms that the above-named student is officially enrolled in the Gymnastics Academy program.</p>
+                </div>
+            `;
+            html2pdf().set({
+                margin: 0.5,
+                filename: `Enrollment_${gymnastData.membership_id}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2 },
+                jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+            }).from(div).save();
         }
         <?php endif; ?>
         
