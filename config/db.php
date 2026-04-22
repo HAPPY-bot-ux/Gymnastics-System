@@ -5,8 +5,8 @@ class Database {
     private $connection;
     
     private $host = 'localhost';
-    private $username = 'root';     // Change this to your MySQL username
-    private $password = 'Narutostorm4';         // Change this to your MySQL password
+    private $username = 'root';     
+    private $password = 'Narutostorm4';         
     private $database = 'gymnastics_academy';
     
     private function __construct() {

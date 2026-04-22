@@ -2,11 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 
-// Configure axios base URL
+
 const API_BASE_URL = 'http://localhost:5000/api';
 axios.defaults.baseURL = API_BASE_URL;
 
-// Setup auth token helper
+
 const getAuthToken = () => {
     const token = localStorage.getItem('token');
     return token ? `Bearer ${token}` : '';

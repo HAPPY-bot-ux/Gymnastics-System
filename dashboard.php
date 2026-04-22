@@ -14,8 +14,10 @@ $gymnastManager = new GymnastManager();
 $gymnasts = $gymnastManager->getAllGymnasts();
 $isAdmin = $auth->isAdmin();
 $isGymnast = $auth->isGymnast();
-$current_user = $_SESSION['username'];
-$user_role = $_SESSION['role'];
+
+// Initialize variables with defaults
+$current_user = isset($_SESSION['username']) ? $_SESSION['username'] : 'Guest';
+$user_role = isset($_SESSION['role']) ? $_SESSION['role'] : 'gymnast';
 
 $myProfile = null;
 if ($isGymnast && isset($_SESSION['gymnast_id'])) {
@@ -106,10 +108,7 @@ if ($isAdmin && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])
                     $db->getConnection()->commit();
                     $registerSuccess = true;
                     $successMessage = "Gymnast registered successfully!<br><strong>Username:</strong> " . htmlspecialchars($username) . "<br><strong>Password:</strong> " . $generatedPassword;
-                    // DO NOT redirect - stay on the same page to keep admin logged in
-                    // Just set success message and refresh the page data
                     $_SESSION['registration_success'] = $successMessage;
-                    // Refresh the page to show updated list without logging out
                     echo '<script>window.location.href = "dashboard.php";</script>';
                     exit();
                 } else {
@@ -125,7 +124,6 @@ if ($isAdmin && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])
     }
 }
 
-// Check for success message in session
 if (isset($_SESSION['registration_success'])) {
     $successMessage = $_SESSION['registration_success'];
     unset($_SESSION['registration_success']);
@@ -135,9 +133,9 @@ if (isset($_SESSION['registration_success'])) {
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title><?php echo $isAdmin ? 'Admin Dashboard' : 'My Dashboard'; ?> - Gymnastics Academy</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
@@ -146,1371 +144,664 @@ if (isset($_SESSION['registration_success'])) {
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         body {
             font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
-            min-height: 100vh;
+            background: #f0f2f8;
+            color: #1e293b;
         }
-        
-        /* Premium Navigation */
-        .navbar {
-            background: rgba(255, 255, 255, 0.03);
-            backdrop-filter: blur(20px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            padding: 1rem 2rem;
+
+        /* Modern glassmorphism nav */
+        .app-nav {
+            background: rgba(255,255,255,0.96);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid #e2e8f0;
+            padding: 0 2rem;
             position: sticky;
             top: 0;
-            z-index: 1000;
+            z-index: 100;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.02);
         }
-        
-        .nav-container {
-            max-width: 1400px;
+
+        .nav-inner {
+            max-width: 1440px;
             margin: 0 auto;
             display: flex;
             justify-content: space-between;
             align-items: center;
             flex-wrap: wrap;
-            gap: 15px;
+            gap: 1rem;
+            padding: 0.9rem 0;
         }
-        
-        .logo {
+
+        .brand {
             display: flex;
             align-items: center;
             gap: 12px;
+            font-weight: 800;
+            font-size: 1.4rem;
+            color: #0f172a;
+            letter-spacing: -0.3px;
+        }
+
+        .brand-icon {
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            width: 38px;
+            height: 38px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             color: white;
-            font-size: 1.5rem;
+            box-shadow: 0 6px 12px -6px rgba(79,70,229,0.3);
+        }
+
+        .user-badge {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            background: #f8fafc;
+            padding: 0.4rem 1.2rem 0.4rem 0.8rem;
+            border-radius: 60px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .avatar {
+            background: linear-gradient(145deg, #4f46e5, #7c3aed);
+            width: 38px;
+            height: 38px;
+            border-radius: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+
+        .role-tag {
+            background: #eef2ff;
+            padding: 4px 12px;
+            border-radius: 30px;
+            font-size: 0.7rem;
             font-weight: 700;
-            text-decoration: none;
+            color: #4f46e5;
         }
-        
-        .logo-icon {
-            width: 42px;
-            height: 42px;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
-        }
-        
-        .nav-links {
-            display: flex;
-            gap: 12px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-        
-        .nav-links a {
-            color: rgba(255, 255, 255, 0.8);
-            text-decoration: none;
-            padding: 8px 18px;
-            border-radius: 10px;
-            transition: all 0.3s;
+
+        .btn-logout {
+            background: transparent;
+            border: 1px solid #e2e8f0;
+            padding: 8px 16px;
+            border-radius: 40px;
             font-weight: 500;
-        }
-        
-        .nav-links a:hover {
-            background: rgba(255, 255, 255, 0.1);
-            color: white;
-            transform: translateY(-2px);
-        }
-        
-        .user-info {
-            display: flex;
+            transition: all 0.2s;
+            color: #1e293b;
+            text-decoration: none;
+            display: inline-flex;
             align-items: center;
-            gap: 12px;
-            background: rgba(255, 255, 255, 0.08);
-            padding: 6px 18px;
-            border-radius: 50px;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            gap: 8px;
         }
-        
-        .user-avatar {
-            width: 34px;
-            height: 34px;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+
+        .btn-logout:hover {
+            background: #fee2e2;
+            border-color: #fecaca;
+            color: #b91c1c;
         }
-        
+
         .container {
-            max-width: 1400px;
+            max-width: 1440px;
             margin: 2rem auto;
-            padding: 0 24px;
+            padding: 0 2rem;
         }
-        
-        /* Welcome Banner */
-        .welcome-banner {
-            background: linear-gradient(135deg, rgba(102, 126, 234, 0.15), rgba(118, 75, 162, 0.1));
-            border: 1px solid rgba(255, 255, 255, 0.1);
+
+        /* Welcome header */
+        .welcome-card {
+            background: white;
+            border-radius: 32px;
+            padding: 2rem 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.02);
+            border: 1px solid #eef2ff;
+        }
+
+        /* Stats grid professional */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-tile {
+            background: white;
             border-radius: 28px;
-            padding: 40px 45px;
-            margin-bottom: 35px;
-            backdrop-filter: blur(10px);
+            padding: 1.4rem 1.5rem;
+            transition: all 0.2s;
+            border: 1px solid #eef2ff;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.02);
         }
-        
-        .welcome-banner h1 {
-            font-size: 32px;
-            font-weight: 700;
-            background: linear-gradient(135deg, #fff, #a78bfa);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 10px;
-        }
-        
-        .welcome-banner p {
-            color: #a0aec0;
-            font-size: 15px;
-        }
-        
-        /* Success Message */
-        .success-message {
-            background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(16, 185, 129, 0.05));
-            border: 1px solid rgba(16, 185, 129, 0.3);
-            border-radius: 20px;
-            padding: 20px;
-            margin-bottom: 28px;
-            color: #34d399;
-        }
-        
-        .success-message i {
-            margin-right: 10px;
-            font-size: 20px;
-        }
-        
-        /* Stats Grid */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-            gap: 24px;
-            margin-bottom: 35px;
-        }
-        
-        .stat-card {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 24px;
-            padding: 24px;
-            transition: all 0.3s;
-        }
-        
-        .stat-card:hover {
-            transform: translateY(-5px);
-            border-color: rgba(102, 126, 234, 0.5);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
-        }
-        
-        .stat-icon {
-            width: 54px;
-            height: 54px;
-            border-radius: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 26px;
-            margin-bottom: 18px;
-        }
-        
-        .stat-icon.total { background: linear-gradient(135deg, #667eea, #764ba2); }
-        .stat-icon.active { background: linear-gradient(135deg, #10b981, #059669); }
-        .stat-icon.onhold { background: linear-gradient(135deg, #f59e0b, #d97706); }
-        .stat-icon.completed { background: linear-gradient(135deg, #3b82f6, #2563eb); }
-        
-        .stat-info h3 {
-            font-size: 12px;
-            color: #94a3b8;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            font-weight: 600;
-            margin-bottom: 8px;
-        }
-        
-        .stat-number {
-            font-size: 36px;
-            font-weight: 800;
-            color: white;
-        }
-        
-        /* Programs Section */
-        .programs-section {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-            gap: 24px;
-            margin-bottom: 35px;
-        }
-        
-        .program-card {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 24px;
-            padding: 24px;
-            transition: all 0.3s;
-        }
-        
-        .program-card:hover {
+
+        .stat-tile:hover {
             transform: translateY(-3px);
-            border-color: rgba(102, 126, 234, 0.5);
+            border-color: #cbd5e1;
+            box-shadow: 0 12px 24px -12px rgba(0,0,0,0.08);
         }
-        
-        .program-header {
+
+        .stat-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 18px;
         }
-        
-        .program-icon {
-            width: 54px;
-            height: 54px;
-            border-radius: 16px;
+
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 24px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 26px;
+            font-size: 1.4rem;
         }
-        
-        .program-icon.beginner { background: linear-gradient(135deg, #10b981, #059669); }
-        .program-icon.intermediate { background: linear-gradient(135deg, #f59e0b, #d97706); }
-        .program-icon.advanced { background: linear-gradient(135deg, #ef4444, #dc2626); }
-        
-        .program-count {
-            font-size: 32px;
+
+        .bg-primary-light { background: #eef2ff; color: #4f46e5; }
+        .bg-success-light { background: #e6f7ec; color: #10b981; }
+        .bg-warning-light { background: #fffbeb; color: #f59e0b; }
+        .bg-info-light { background: #e0f2fe; color: #0ea5e9; }
+
+        .stat-value {
+            font-size: 2.2rem;
             font-weight: 800;
-            color: white;
+            margin-top: 0.8rem;
+            color: #0f172a;
         }
-        
-        .program-label {
-            color: #94a3b8;
-            font-size: 14px;
-            font-weight: 500;
+
+        /* Program distribution cards */
+        .program-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2.5rem;
         }
-        
-        .progress-bar {
-            width: 100%;
-            height: 8px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            overflow: hidden;
-            margin-top: 18px;
+
+        .program-card {
+            background: white;
+            border-radius: 28px;
+            padding: 1.5rem;
+            border-left: 5px solid;
+            transition: 0.2s;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+            cursor: pointer;
         }
-        
-        .progress-fill {
-            height: 100%;
-            border-radius: 10px;
-            transition: width 1s ease;
+
+        .beginner-border { border-left-color: #10b981; }
+        .intermediate-border { border-left-color: #f59e0b; }
+        .advanced-border { border-left-color: #ef4444; }
+
+        /* table card */
+        .data-card {
+            background: white;
+            border-radius: 28px;
+            padding: 1.8rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 6px 14px rgba(0,0,0,0.02);
+            border: 1px solid #edf2f7;
         }
-        
-        .progress-fill.beginner { background: linear-gradient(90deg, #10b981, #34d399); }
-        .progress-fill.intermediate { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
-        .progress-fill.advanced { background: linear-gradient(90deg, #ef4444, #f87171); }
-        
-        /* Table Card */
-        .table-card {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 24px;
-            padding: 28px;
-            overflow-x: auto;
-        }
-        
-        .table-header {
+
+        .flex-between {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 25px;
             flex-wrap: wrap;
-            gap: 15px;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
         }
-        
-        .table-header h2 {
-            color: white;
-            font-size: 22px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        /* Filter Bar */
+
         .filter-bar {
             display: flex;
-            gap: 15px;
+            gap: 12px;
             flex-wrap: wrap;
-            margin-bottom: 28px;
-            padding: 20px;
-            background: rgba(0, 0, 0, 0.2);
-            border-radius: 20px;
+            background: #f8fafc;
+            padding: 1rem 1.2rem;
+            border-radius: 60px;
+            margin-bottom: 1.8rem;
         }
-        
-        .filter-group {
-            flex: 1;
-            min-width: 180px;
+
+        .filter-input, .filter-select {
+            padding: 0.6rem 1rem;
+            border-radius: 40px;
+            border: 1px solid #e2e8f0;
+            background: white;
+            font-size: 0.85rem;
         }
-        
-        .filter-group label {
-            display: block;
-            font-size: 11px;
+
+        .btn-sm {
+            padding: 0.5rem 1.2rem;
+            border-radius: 40px;
             font-weight: 600;
-            color: #94a3b8;
-            margin-bottom: 6px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
-        .filter-group input,
-        .filter-group select {
-            width: 100%;
-            padding: 12px 16px;
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            color: white;
-            font-size: 14px;
-            transition: all 0.3s;
-        }
-        
-        .filter-group input:focus,
-        .filter-group select:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-        
-        .btn-primary, .btn-export, .btn-reset {
-            padding: 12px 24px;
-            border-radius: 12px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
             border: none;
-            font-size: 14px;
+            cursor: pointer;
+            transition: 0.2s;
         }
-        
+
         .btn-primary {
-            background: linear-gradient(135deg, #667eea, #764ba2);
+            background: #4f46e5;
             color: white;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+            box-shadow: 0 2px 6px rgba(79,70,229,0.2);
         }
-        
-        .btn-export {
-            background: linear-gradient(135deg, #10b981, #059669);
-            color: white;
+
+        .btn-outline {
+            background: white;
+            border: 1px solid #cbd5e1;
         }
-        
-        .btn-reset {
-            background: rgba(255, 255, 255, 0.1);
-            color: white;
-        }
-        
-        .btn-primary:hover, .btn-export:hover, .btn-reset:hover {
-            transform: translateY(-2px);
-            filter: brightness(1.1);
-        }
-        
-        /* Data Table */
-        .data-table {
+
+        table {
             width: 100%;
             border-collapse: collapse;
         }
-        
-        .data-table th {
+
+        th {
             text-align: left;
-            padding: 16px 12px;
-            color: #94a3b8;
+            padding: 1rem 0.8rem;
             font-weight: 600;
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            color: #475569;
+            border-bottom: 1px solid #e2e8f0;
             cursor: pointer;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
-        
-        .data-table th:hover {
-            color: #a78bfa;
+
+        td {
+            padding: 1rem 0.8rem;
+            border-bottom: 1px solid #f1f5f9;
+            color: #1e293b;
         }
-        
-        .data-table td {
-            padding: 16px 12px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-            color: #e2e8f0;
-            font-size: 14px;
-        }
-        
-        .data-table tr {
-            transition: all 0.3s;
-        }
-        
-        .data-table tr:hover {
-            background: rgba(255, 255, 255, 0.03);
-        }
-        
-        /* Badges */
-        .status-badge {
-            padding: 6px 14px;
-            border-radius: 50px;
-            font-size: 12px;
+
+        .badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 40px;
+            font-size: 0.75rem;
             font-weight: 600;
             display: inline-flex;
             align-items: center;
             gap: 6px;
         }
-        
-        .status-active {
-            background: rgba(16, 185, 129, 0.15);
-            color: #34d399;
-            border: 1px solid rgba(16, 185, 129, 0.3);
-        }
-        
-        .status-onhold {
-            background: rgba(245, 158, 11, 0.15);
-            color: #fbbf24;
-            border: 1px solid rgba(245, 158, 11, 0.3);
-        }
-        
-        .status-completed {
-            background: rgba(59, 130, 246, 0.15);
-            color: #60a5fa;
-            border: 1px solid rgba(59, 130, 246, 0.3);
-        }
-        
-        .program-badge {
-            padding: 4px 12px;
-            border-radius: 8px;
-            font-size: 11px;
-            font-weight: 600;
-        }
-        
-        .program-beginner {
-            background: rgba(16, 185, 129, 0.15);
-            color: #34d399;
-        }
-        
-        .program-intermediate {
-            background: rgba(245, 158, 11, 0.15);
-            color: #fbbf24;
-        }
-        
-        .program-advanced {
-            background: rgba(239, 68, 68, 0.15);
-            color: #f87171;
-        }
-        
-        /* Action Buttons */
-        .action-buttons {
+
+        .badge-active { background: #e6f7ec; color: #0e6b3e; }
+        .badge-onhold { background: #fffbeb; color: #b45309; }
+        .badge-completed { background: #eef2ff; color: #3730a3; }
+
+        .action-group {
             display: flex;
             gap: 8px;
             flex-wrap: wrap;
         }
-        
-        .action-btn {
-            padding: 6px 14px;
-            border-radius: 8px;
-            font-size: 12px;
+
+        .action-link {
+            padding: 5px 12px;
+            border-radius: 30px;
+            font-size: 0.75rem;
             font-weight: 500;
-            cursor: pointer;
-            transition: all 0.3s;
             text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
+            transition: 0.2s;
+            cursor: pointer;
             border: none;
         }
-        
-        .btn-view {
-            background: rgba(102, 126, 234, 0.15);
-            color: #a78bfa;
-            border: 1px solid rgba(102, 126, 234, 0.3);
-        }
-        
-        .btn-update {
-            background: rgba(16, 185, 129, 0.15);
-            color: #34d399;
-            border: 1px solid rgba(16, 185, 129, 0.3);
-        }
-        
-        .btn-delete {
-            background: rgba(239, 68, 68, 0.15);
-            color: #f87171;
-            border: 1px solid rgba(239, 68, 68, 0.3);
-        }
-        
-        .action-btn:hover {
-            transform: translateY(-2px);
-            filter: brightness(1.1);
-        }
-        
-        /* Premium Modal */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 9999;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(8px);
-        }
-        
-        .modal-content {
-            background: linear-gradient(135deg, #1e1b4b, #1a1a3e);
-            margin: 5% auto;
-            padding: 0;
-            border-radius: 28px;
-            width: 90%;
-            max-width: 600px;
-            border: 1px solid rgba(102, 126, 234, 0.3);
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-            overflow: hidden;
-        }
-        
-        .modal-header {
-            background: linear-gradient(135deg, rgba(102, 126, 234, 0.15), rgba(118, 75, 162, 0.1));
-            padding: 24px 28px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        
-        .modal-header h3 {
-            color: white;
-            font-size: 22px;
-            font-weight: 600;
+
+        .btn-view { background: #eef2ff; color: #4f46e5; }
+        .btn-edit { background: #e6f7ec; color: #0e6b3e; }
+        .btn-delete { background: #fee2e2; color: #b91c1c; }
+
+        /* profile card for gymnast */
+        .profile-modern {
+            background: white;
+            border-radius: 32px;
+            padding: 2rem;
+            margin-bottom: 2rem;
             display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        
-        .modal-body {
-            padding: 28px;
-        }
-        
-        .close {
-            float: right;
-            font-size: 28px;
-            font-weight: 500;
-            cursor: pointer;
-            color: #94a3b8;
-            transition: all 0.3s;
-        }
-        
-        .close:hover {
-            color: white;
-        }
-        
-        /* Form Styles */
-        .form-group {
-            margin-bottom: 20px;
-        }
-        
-        .form-group label {
-            display: block;
-            color: #94a3b8;
-            margin-bottom: 8px;
-            font-size: 13px;
-            font-weight: 500;
-        }
-        
-        .form-group label .required {
-            color: #f87171;
-            margin-left: 4px;
-        }
-        
-        .form-group input, .form-group select {
-            width: 100%;
-            padding: 14px 16px;
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 14px;
-            color: white;
-            font-size: 14px;
-            transition: all 0.3s;
-        }
-        
-        .form-group input:focus, .form-group select:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-        
-        .form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-        }
-        
-        /* Profile Card */
-        .profile-card {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 24px;
-            padding: 32px;
-            margin-bottom: 35px;
-        }
-        
-        .profile-header {
-            display: flex;
-            align-items: center;
-            gap: 32px;
-            margin-bottom: 28px;
             flex-wrap: wrap;
+            gap: 2rem;
+            align-items: center;
         }
-        
-        .profile-avatar {
-            width: 90px;
-            height: 90px;
-            background: linear-gradient(135deg, #667eea, #764ba2);
+
+        .profile-avatar-lg {
+            width: 100px;
+            height: 100px;
+            background: linear-gradient(145deg, #4f46e5, #7c3aed);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
-        }
-        
-        .profile-avatar i {
-            font-size: 45px;
+            font-size: 3rem;
             color: white;
         }
-        
-        .profile-info h2 {
-            color: white;
-            font-size: 26px;
+
+        .info-grid {
+            flex: 1;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px,1fr));
+            gap: 1rem;
+        }
+
+        .info-item {
+            background: #f8fafc;
+            padding: 0.8rem 1rem;
+            border-radius: 20px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-container {
+            background: white;
+            max-width: 550px;
+            width: 90%;
+            border-radius: 32px;
+            overflow: hidden;
+            box-shadow: 0 25px 40px rgba(0,0,0,0.2);
+        }
+
+        .modal-header {
+            padding: 1.2rem 1.5rem;
+            background: #f8fafc;
+            border-bottom: 1px solid #eef2ff;
             font-weight: 700;
         }
-        
-        .membership-id {
-            color: #a78bfa;
-            margin-top: 6px;
-            font-weight: 500;
+
+        .modal-body {
+            padding: 1.8rem;
         }
-        
-        .profile-details {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-            gap: 20px;
-        }
-        
-        .detail-item {
-            padding: 16px;
-            background: rgba(0, 0, 0, 0.2);
-            border-radius: 16px;
-            border: 1px solid rgba(255, 255, 255, 0.05);
-        }
-        
-        .detail-label {
-            font-size: 11px;
-            color: #94a3b8;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 6px;
-        }
-        
-        .detail-value {
-            color: white;
-            font-weight: 500;
-            font-size: 15px;
-        }
-        
-        .results-count {
-            text-align: right;
-            margin-top: 24px;
-            padding-top: 20px;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-            color: #94a3b8;
-            font-size: 14px;
-        }
-        
-        .admin-only { display: <?php echo $isAdmin ? 'block' : 'none'; ?>; }
-        .gymnast-only { display: <?php echo $isGymnast ? 'block' : 'none'; ?>; }
-        
-        /* Test Credentials Box */
-        .test-credentials {
-            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.05));
-            border: 1px solid rgba(16, 185, 129, 0.3);
-            border-radius: 20px;
-            padding: 20px;
-            margin-bottom: 28px;
-        }
-        
-        .test-credentials h4 {
-            color: #34d399;
-            margin-bottom: 14px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 15px;
-        }
-        
-        .credential-row {
-            display: flex;
-            gap: 20px;
-            flex-wrap: wrap;
-        }
-        
-        .credential-item {
-            background: rgba(0, 0, 0, 0.3);
-            padding: 10px 18px;
-            border-radius: 12px;
-            border: 1px solid rgba(255, 255, 255, 0.05);
-        }
-        
-        .credential-item strong {
-            color: #a78bfa;
-        }
-        
-        .info-text {
-            margin-top: 15px;
-            padding: 12px;
-            background: rgba(102, 126, 234, 0.1);
-            border-radius: 12px;
-            font-size: 12px;
-            color: #94a3b8;
-        }
-        
-        /* Print styles for better PDF generation */
-        @media print {
-            .navbar, .filter-bar, .action-buttons, .btn-export, .btn-primary, .test-credentials, .close {
-                display: none !important;
-            }
-            .profile-card, .program-card, .table-card {
-                break-inside: avoid;
-                page-break-inside: avoid;
-            }
-            body {
-                background: white;
-            }
-            .welcome-banner h1 {
-                -webkit-text-fill-color: #667eea;
-            }
-        }
-        
+
+        .text-center { text-align: center; }
+
         @media (max-width: 768px) {
-            .form-row {
-                grid-template-columns: 1fr;
-                gap: 0;
-            }
-            .filter-bar {
-                flex-direction: column;
-            }
-            .profile-header {
-                flex-direction: column;
-                text-align: center;
-            }
-            .container {
-                padding: 0 16px;
-            }
-            .welcome-banner {
-                padding: 25px;
-            }
-            .welcome-banner h1 {
-                font-size: 24px;
-            }
+            .container { padding: 0 1rem; }
+            .filter-bar { border-radius: 20px; }
         }
     </style>
 </head>
 <body>
-    <nav class="navbar">
-        <div class="nav-container">
-            <a href="dashboard.php" class="logo">
-                <div class="logo-icon"><i class="fas fa-gymnastics"></i></div>
-                <span>Gymnastics Academy</span>
-            </a>
-            <div class="nav-links">
-                <div class="user-info">
-                    <div class="user-avatar"><i class="fas fa-user"></i></div>
-                    <span><?php echo htmlspecialchars($current_user); ?></span>
-                    <span style="background: rgba(102,126,234,0.3); padding: 4px 10px; border-radius: 20px; font-size: 10px; font-weight: 600;"><?php echo strtoupper($user_role); ?></span>
-                </div>
-                <a href="logout.php"><i class="fas fa-sign-out-alt"></i> Logout</a>
+
+<nav class="app-nav">
+    <div class="nav-inner">
+        <div class="brand">
+            <div class="brand-icon"><i class="fas fa-handstand"></i></div>
+            <span>GYMNASTICS PRO</span>
+        </div>
+        <div style="display: flex; gap: 12px; align-items: center;">
+            <div class="user-badge">
+                <div class="avatar"><i class="fas fa-user"></i></div>
+                <span><strong><?php echo htmlspecialchars($current_user); ?></strong></span>
+                <span class="role-tag"><?php echo strtoupper(htmlspecialchars($user_role)); ?></span>
             </div>
+            <a href="logout.php" class="btn-logout"><i class="fas fa-sign-out-alt"></i> Exit</a>
         </div>
-    </nav>
-    
-    <div class="container">
-        <div class="welcome-banner">
-            <h1>Welcome back, <?php echo htmlspecialchars($current_user); ?>! 👋</h1>
-            <p><?php echo $isAdmin ? 'Manage gymnasts, track progress, and monitor academy performance.' : 'Track your training progress and view personal information.'; ?></p>
-        </div>
-        
-        <?php if ($isAdmin): ?>
-        <!-- Success Message -->
+    </div>
+</nav>
+
+<div class="container">
+    <!-- Welcome banner -->
+    <div class="welcome-card">
+        <h1 style="font-size: 1.8rem; font-weight: 700;">👋 Welcome back, <?php echo htmlspecialchars($current_user); ?></h1>
+        <p style="color: #475569; margin-top: 8px;"><?php echo $isAdmin ? 'Centralized athlete management & performance insights' : 'Your personal training dashboard & documents'; ?></p>
+    </div>
+
+    <?php if ($isAdmin): ?>
+        <!-- ================= ADMIN DASHBOARD ================= -->
         <?php if ($successMessage): ?>
-        <div class="success-message">
-            <i class="fas fa-check-circle"></i> 
-            <?php echo $successMessage; ?>
-        </div>
-        <?php endif; ?>
-        
-        <!-- Test Credentials Info Box -->
-        <div class="test-credentials">
-            <h4><i class="fas fa-flask"></i> Test Credentials</h4>
-            <div class="credential-row">
-                <div class="credential-item"><strong>👑 Admin:</strong> admin / admin123</div>
-                <div class="credential-item"><strong>🤸 Gymnast:</strong> gymnast1 / gymnast123</div>
+            <div style="background: #e6f7ec; border-radius: 20px; padding: 1rem; margin-bottom: 1.5rem; color: #0e6b3e; border-left: 5px solid #10b981;">
+                <i class="fas fa-check-circle"></i> <?php echo $successMessage; ?>
             </div>
+        <?php endif; ?>
+
+        <!-- Stats row -->
+        <div class="stats-row">
+            <div class="stat-tile"><div class="stat-header"><div class="stat-icon bg-primary-light"><i class="fas fa-users"></i></div></div><div class="stat-value"><?php echo $totalGymnasts; ?></div><div>Total athletes</div></div>
+            <div class="stat-tile"><div class="stat-header"><div class="stat-icon bg-success-light"><i class="fas fa-check-circle"></i></div></div><div class="stat-value"><?php echo $activeCount; ?></div><div>Active members</div></div>
+            <div class="stat-tile"><div class="stat-header"><div class="stat-icon bg-warning-light"><i class="fas fa-pause"></i></div></div><div class="stat-value"><?php echo $onHoldCount; ?></div><div>On hold</div></div>
+            <div class="stat-tile"><div class="stat-header"><div class="stat-icon bg-info-light"><i class="fas fa-trophy"></i></div></div><div class="stat-value"><?php echo $completedCount; ?></div><div>Completed</div></div>
         </div>
-        
-        <!-- Stats Cards -->
-        <div class="stats-grid">
-            <div class="stat-card"><div class="stat-icon total"><i class="fas fa-users"></i></div><div class="stat-info"><h3>Total Gymnasts</h3><div class="stat-number"><?php echo $totalGymnasts; ?></div></div></div>
-            <div class="stat-card"><div class="stat-icon active"><i class="fas fa-check-circle"></i></div><div class="stat-info"><h3>Active Members</h3><div class="stat-number"><?php echo $activeCount; ?></div></div></div>
-            <div class="stat-card"><div class="stat-icon onhold"><i class="fas fa-pause-circle"></i></div><div class="stat-info"><h3>On Hold</h3><div class="stat-number"><?php echo $onHoldCount; ?></div></div></div>
-            <div class="stat-card"><div class="stat-icon completed"><i class="fas fa-trophy"></i></div><div class="stat-info"><h3>Completed</h3><div class="stat-number"><?php echo $completedCount; ?></div></div></div>
+
+        <!-- Program distribution -->
+        <div class="program-grid">
+            <div class="program-card beginner-border"><div style="display: flex; justify-content: space-between;"><span><i class="fas fa-seedling" style="color:#10b981;"></i> Beginner</span><span class="stat-value" style="font-size: 1.8rem;"><?php echo $beginnerCount; ?></span></div><div class="progress-bar" style="height:6px; background:#e2e8f0; border-radius:10px; margin-top:12px;"><div style="width:<?php echo $totalGymnasts>0 ? ($beginnerCount/$totalGymnasts)*100 : 0; ?>%; height:6px; background:#10b981; border-radius:10px;"></div></div></div>
+            <div class="program-card intermediate-border"><div style="display: flex; justify-content: space-between;"><span><i class="fas fa-chart-line" style="color:#f59e0b;"></i> Intermediate</span><span class="stat-value" style="font-size: 1.8rem;"><?php echo $intermediateCount; ?></span></div><div class="progress-bar" style="height:6px; background:#e2e8f0; border-radius:10px; margin-top:12px;"><div style="width:<?php echo $totalGymnasts>0 ? ($intermediateCount/$totalGymnasts)*100 : 0; ?>%; height:6px; background:#f59e0b; border-radius:10px;"></div></div></div>
+            <div class="program-card advanced-border"><div style="display: flex; justify-content: space-between;"><span><i class="fas fa-crown" style="color:#ef4444;"></i> Advanced</span><span class="stat-value" style="font-size: 1.8rem;"><?php echo $advancedCount; ?></span></div><div class="progress-bar" style="height:6px; background:#e2e8f0; border-radius:10px; margin-top:12px;"><div style="width:<?php echo $totalGymnasts>0 ? ($advancedCount/$totalGymnasts)*100 : 0; ?>%; height:6px; background:#ef4444; border-radius:10px;"></div></div></div>
         </div>
-        
-        <!-- Programs Distribution -->
-        <div class="programs-section">
-            <div class="program-card"><div class="program-header"><div class="program-icon beginner"><i class="fas fa-seedling"></i></div><div class="program-count"><?php echo $beginnerCount; ?></div></div><div class="program-label">Beginner Program</div><div class="progress-bar"><div class="progress-fill beginner" style="width: <?php echo $totalGymnasts > 0 ? ($beginnerCount/$totalGymnasts)*100 : 0; ?>%"></div></div></div>
-            <div class="program-card"><div class="program-header"><div class="program-icon intermediate"><i class="fas fa-chart-line"></i></div><div class="program-count"><?php echo $intermediateCount; ?></div></div><div class="program-label">Intermediate Program</div><div class="progress-bar"><div class="progress-fill intermediate" style="width: <?php echo $totalGymnasts > 0 ? ($intermediateCount/$totalGymnasts)*100 : 0; ?>%"></div></div></div>
-            <div class="program-card"><div class="program-header"><div class="program-icon advanced"><i class="fas fa-trophy"></i></div><div class="program-count"><?php echo $advancedCount; ?></div></div><div class="program-label">Advanced Program</div><div class="progress-bar"><div class="progress-fill advanced" style="width: <?php echo $totalGymnasts > 0 ? ($advancedCount/$totalGymnasts)*100 : 0; ?>%"></div></div></div>
-        </div>
-        
-        <!-- Register New Gymnast Form -->
-      <!-- Register New Gymnast Section -->
-<div class="table-card" style="margin-bottom: 35px;">
-    <div class="table-header">
-        <h2><i class="fas fa-user-plus"></i> Register New Gymnast</h2>
-        <a href="register_gymnast.php" class="btn-primary" style="text-decoration: none; display: inline-flex; align-items: center; gap: 8px;">
-            <i class="fas fa-plus-circle"></i> Register New Gymnast
-        </a>
-    </div>
-    <div class="info-text">
-        <i class="fas fa-info-circle"></i> Click the button above to register a new gymnast. You will be redirected to the registration form with all required fields.
-    </div>
-</div>
-        
-        <!-- Gymnasts List -->
-        <div class="table-card">
-            <div class="table-header"><h2><i class="fas fa-users"></i> Gymnasts Management</h2><button onclick="exportToCSV()" class="btn-export"><i class="fas fa-file-csv"></i> Export CSV</button></div>
+
+        <!-- Registration CTA + Table -->
+        <div class="data-card">
+            <div class="flex-between">
+                <h3 style="font-weight: 700;"><i class="fas fa-user-plus"></i> Athlete management</h3>
+                <a href="register_gymnast.php" style="background:#4f46e5; color:white; padding: 8px 24px; border-radius: 40px; text-decoration: none; font-weight: 500;"><i class="fas fa-plus"></i> Register gymnast</a>
+            </div>
             <div class="filter-bar">
-                <div class="filter-group"><label>Search</label><input type="text" id="searchInput" placeholder="Search by name, ID, email..."></div>
-                <div class="filter-group"><label>Program</label><select id="programFilter"><option value="">All</option><option value="Beginner">Beginner</option><option value="Intermediate">Intermediate</option><option value="Advanced">Advanced</option></select></div>
-                <div class="filter-group"><label>Status</label><select id="statusFilter"><option value="">All</option><option value="Active">Active</option><option value="On Hold">On Hold</option><option value="Completed">Completed</option></select></div>
-                <button onclick="applyFilters()" class="btn-primary">Apply Filters</button>
-                <button onclick="resetFilters()" class="btn-reset">Reset</button>
+                <input type="text" id="searchInput" placeholder="Search name, ID, email" class="filter-input">
+                <select id="programFilter" class="filter-select"><option value="">All programs</option><option>Beginner</option><option>Intermediate</option><option>Advanced</option></select>
+                <select id="statusFilter" class="filter-select"><option value="">All status</option><option>Active</option><option>On Hold</option><option>Completed</option></select>
+                <button onclick="applyFilters()" class="btn-sm btn-primary"><i class="fas fa-filter"></i> Filter</button>
+                <button onclick="resetFilters()" class="btn-sm btn-outline">Reset</button>
+                <button onclick="exportToCSV()" class="btn-sm btn-outline"><i class="fas fa-file-csv"></i> Export</button>
             </div>
             <div style="overflow-x: auto;">
-                <table class="data-table" id="gymnastTable">
-                    <thead>
-                        <tr>
-                            <th onclick="sortTable(0)">Name <i class="fas fa-sort"></i></th>
-                            <th onclick="sortTable(1)">Membership ID <i class="fas fa-sort"></i></th>
-                            <th>Email</th>
-                            <th>Contact</th>
-                            <th onclick="sortTable(4)">Program <i class="fas fa-sort"></i></th>
-                            <th onclick="sortTable(5)">Status <i class="fas fa-sort"></i></th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
+                <table id="gymnastTable">
+                    <thead><tr><th onclick="sortTable(0)">Name <i class="fas fa-sort"></i></th><th onclick="sortTable(1)">Member ID</th><th>Email</th><th>Contact</th><th onclick="sortTable(4)">Program</th><th>Status</th><th>Actions</th></tr></thead>
                     <tbody id="tableBody">
-                        <?php foreach ($gymnasts as $gymnast): ?>
-                        <tr data-program="<?php echo $gymnast['training_program']; ?>" data-status="<?php echo $gymnast['progress_status']; ?>">
-                            <td><strong><?php echo htmlspecialchars($gymnast['full_name']); ?></strong></td>
-                            <td><code style="background: rgba(255,255,255,0.05); padding: 4px 10px; border-radius: 8px;"><?php echo htmlspecialchars($gymnast['membership_id']); ?></code></td>
-                            <td><i class="fas fa-envelope" style="color: #a78bfa; margin-right: 6px;"></i> <?php echo htmlspecialchars($gymnast['email']); ?></td>
-                            <td><i class="fas fa-phone" style="color: #34d399; margin-right: 6px;"></i> <?php echo htmlspecialchars($gymnast['contact_no']); ?></td>
-                            <td><span class="program-badge program-<?php echo strtolower($gymnast['training_program']); ?>"><?php echo $gymnast['training_program']; ?></span></td>
-                            <td><span class="status-badge status-<?php echo strtolower(str_replace(' ', '', $gymnast['progress_status'])); ?>"><i class="fas <?php echo $gymnast['progress_status'] == 'Active' ? 'fa-check-circle' : ($gymnast['progress_status'] == 'On Hold' ? 'fa-pause-circle' : 'fa-check-double'); ?>"></i> <?php echo $gymnast['progress_status']; ?></span></td>
-                            <td class="action-buttons">
-                                <button onclick="viewGymnast(<?php echo $gymnast['id']; ?>)" class="action-btn btn-view"><i class="fas fa-eye"></i> View</button>
-                                <a href="update.php?id=<?php echo $gymnast['id']; ?>" class="action-btn btn-update"><i class="fas fa-edit"></i> Edit</a>
-                                <button onclick="confirmDelete(<?php echo $gymnast['id']; ?>, '<?php echo addslashes($gymnast['full_name']); ?>')" class="action-btn btn-delete"><i class="fas fa-trash"></i> Delete</button>
+                        <?php foreach ($gymnasts as $g): ?>
+                        <tr data-program="<?php echo htmlspecialchars($g['training_program']); ?>" data-status="<?php echo htmlspecialchars($g['progress_status']); ?>">
+                            <td><strong><?php echo htmlspecialchars($g['full_name']); ?></strong></td>
+                            <td><code><?php echo htmlspecialchars($g['membership_id']); ?></code></td>
+                            <td><?php echo htmlspecialchars($g['email']); ?></td>
+                            <td><?php echo htmlspecialchars($g['contact_no']); ?></td>
+                            <td><span class="badge" style="background:#f1f5f9;"><?php echo htmlspecialchars($g['training_program']); ?></span></td>
+                            <td><span class="badge badge-<?php echo strtolower(str_replace(' ', '', $g['progress_status'])); ?>"><?php echo htmlspecialchars($g['progress_status']); ?></span></td>
+                            <td class="action-group">
+                                <button onclick="viewGymnast(<?php echo $g['id']; ?>)" class="action-link btn-view"><i class="fas fa-eye"></i> View</button>
+                                <a href="update.php?id=<?php echo $g['id']; ?>" class="action-link btn-edit"><i class="fas fa-pen"></i> Edit</a>
+                                <button onclick="confirmDelete(<?php echo $g['id']; ?>, '<?php echo addslashes($g['full_name']); ?>')" class="action-link btn-delete"><i class="fas fa-trash"></i> Del</button>
                             </td>
                         </tr>
                         <?php endforeach; ?>
                     </tbody>
                 </table>
             </div>
-            <div class="results-count" id="resultsCount"></div>
+            <div id="resultsCount" style="margin-top: 1rem; font-size:0.85rem; color:#475569;"></div>
         </div>
-        
-        <?php else: ?>
-        <!-- Gymnast Dashboard with Enhanced Reports -->
-        <div class="programs-section">
-            <!-- Report 1: Profile Summary Card -->
-            <div class="program-card">
-                <div class="program-header">
-                    <div class="program-icon beginner"><i class="fas fa-id-card"></i></div>
-                    <div>
-                        <button onclick="viewProfileReport()" class="action-btn btn-view"><i class="fas fa-eye"></i> View</button>
-                        <button onclick="downloadProfileReport()" class="btn-export" style="margin-left: 8px;"><i class="fas fa-download"></i> PDF</button>
-                    </div>
-                </div>
-                <h3 style="color:white; margin-top:15px;">Profile Summary Report</h3>
-                <p style="color:#94a3b8; font-size:13px; margin-top:8px;">Complete profile information including membership details, personal info, and training program.</p>
-                <div class="info-text" style="margin-top: 15px;">
-                    <i class="fas fa-info-circle"></i> Includes: Name, Membership ID, Email, DOB, Training Program, Enrollment Date
-                </div>
-            </div>
-            
-            <!-- Report 2: Enrollment Confirmation Slip -->
-            <div class="program-card">
-                <div class="program-header">
-                    <div class="program-icon intermediate"><i class="fas fa-receipt"></i></div>
-                    <div>
-                        <button onclick="viewEnrollmentSlip()" class="action-btn btn-view"><i class="fas fa-eye"></i> View</button>
-                        <button onclick="downloadEnrollmentSlip()" class="btn-export" style="margin-left: 8px;"><i class="fas fa-download"></i> PDF</button>
-                    </div>
-                </div>
-                <h3 style="color:white; margin-top:15px;">Enrollment Confirmation</h3>
-                <p style="color:#94a3b8; font-size:13px; margin-top:8px;">Official enrollment confirmation with registration timestamp and course summary.</p>
-                <div class="info-text" style="margin-top: 15px;">
-                    <i class="fas fa-info-circle"></i> Includes: Registration timestamp, Course summary, Status, Confirmation number
-                </div>
-            </div>
-        </div>
-        
-        <!-- Profile Display Area -->
+
+    <?php else: ?>
+        <!-- ================= GYMNAST DASHBOARD ================= -->
         <?php if ($myProfile): ?>
-        <div class="profile-card" id="profileReportContent">
-            <div class="profile-header">
-                <div class="profile-avatar"><i class="fas fa-user-circle"></i></div>
-                <div class="profile-info">
-                    <h2><?php echo htmlspecialchars($myProfile['full_name']); ?></h2>
-                    <p class="membership-id">Member ID: <?php echo $myProfile['membership_id']; ?></p>
-                    <span class="status-badge status-<?php echo strtolower(str_replace(' ', '', $myProfile['progress_status'])); ?>">
-                        <i class="fas <?php echo $myProfile['progress_status'] == 'Active' ? 'fa-check-circle' : ($myProfile['progress_status'] == 'On Hold' ? 'fa-pause-circle' : 'fa-check-double'); ?>"></i> 
-                        <?php echo $myProfile['progress_status']; ?>
-                    </span>
-                </div>
-            </div>
-            <div class="profile-details">
-                <div class="detail-item">
-                    <div class="detail-label"><i class="fas fa-envelope"></i> Email</div>
-                    <div class="detail-value"><?php echo htmlspecialchars($myProfile['email']); ?></div>
-                </div>
-                <div class="detail-item">
-                    <div class="detail-label"><i class="fas fa-phone"></i> Contact Number</div>
-                    <div class="detail-value"><?php echo htmlspecialchars($myProfile['contact_no']); ?></div>
-                </div>
-                <div class="detail-item">
-                    <div class="detail-label"><i class="fas fa-calendar-alt"></i> Date of Birth</div>
-                    <div class="detail-value"><?php echo date('F j, Y', strtotime($myProfile['date_of_birth'])); ?></div>
-                </div>
-                <div class="detail-item">
-                    <div class="detail-label"><i class="fas fa-chalkboard-user"></i> Training Program</div>
-                    <div class="detail-value"><span class="program-badge program-<?php echo strtolower($myProfile['training_program']); ?>"><?php echo $myProfile['training_program']; ?></span></div>
-                </div>
-                <div class="detail-item">
-                    <div class="detail-label"><i class="fas fa-calendar-check"></i> Enrollment Date</div>
-                    <div class="detail-value"><?php echo date('F j, Y', strtotime($myProfile['enrollment_date'])); ?></div>
-                </div>
-                <div class="detail-item">
-                    <div class="detail-label"><i class="fas fa-clock"></i> Member Since</div>
-                    <div class="detail-value"><?php echo date('F j, Y g:i A', strtotime($myProfile['created_at'])); ?></div>
+        <div class="profile-modern">
+            <div class="profile-avatar-lg"><i class="fas fa-user-astronaut"></i></div>
+            <div style="flex:1">
+                <h2 style="font-size: 1.8rem;"><?php echo htmlspecialchars($myProfile['full_name']); ?></h2>
+                <p style="color:#4f46e5; font-weight: 500;"><?php echo htmlspecialchars($myProfile['membership_id']); ?></p>
+                <div style="display: flex; gap: 12px; margin-top: 12px;">
+                    <span class="badge badge-<?php echo strtolower(str_replace(' ', '', $myProfile['progress_status'])); ?>"><i class="fas fa-circle"></i> <?php echo htmlspecialchars($myProfile['progress_status']); ?></span>
                 </div>
             </div>
         </div>
-        
-        <!-- Academy Program Analytics -->
-        <div class="table-card">
-            <h2 style="color:white; margin-bottom:24px;"><i class="fas fa-chart-line"></i> Academy Program Analytics</h2>
-            <div class="stats-grid" style="margin-bottom:0;">
-                <div class="stat-card">
-                    <div class="stat-icon beginner"><i class="fas fa-seedling"></i></div>
-                    <div class="stat-info">
-                        <h3>Beginner Program</h3>
-                        <div class="stat-number"><?php echo $beginnerCount; ?></div>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon intermediate"><i class="fas fa-chart-line"></i></div>
-                    <div class="stat-info">
-                        <h3>Intermediate Program</h3>
-                        <div class="stat-number"><?php echo $intermediateCount; ?></div>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon advanced"><i class="fas fa-trophy"></i></div>
-                    <div class="stat-info">
-                        <h3>Advanced Program</h3>
-                        <div class="stat-number"><?php echo $advancedCount; ?></div>
-                    </div>
-                </div>
+        <div class="info-grid">
+            <div class="info-item"><i class="fas fa-envelope"></i> <?php echo htmlspecialchars($myProfile['email']); ?></div>
+            <div class="info-item"><i class="fas fa-phone-alt"></i> <?php echo htmlspecialchars($myProfile['contact_no']); ?></div>
+            <div class="info-item"><i class="fas fa-calendar"></i> DOB: <?php echo date('M d, Y', strtotime($myProfile['date_of_birth'])); ?></div>
+            <div class="info-item"><i class="fas fa-chalkboard"></i> Program: <?php echo htmlspecialchars($myProfile['training_program']); ?></div>
+            <div class="info-item"><i class="fas fa-calendar-check"></i> Enrolled: <?php echo date('M d, Y', strtotime($myProfile['enrollment_date'])); ?></div>
+            <div class="info-item"><i class="fas fa-clock"></i> Member since: <?php echo date('M d, Y', strtotime($myProfile['created_at'])); ?></div>
+        </div>
+
+        <!-- Two report cards -->
+        <div class="program-grid" style="margin-top: 2rem;">
+            <div class="program-card beginner-border" onclick="viewProfileReport()">
+                <div><i class="fas fa-id-card" style="font-size: 1.8rem; color:#4f46e5;"></i></div>
+                <h3 style="margin-top: 12px;">Profile Summary</h3>
+                <p style="color:#475569;">Complete membership details & personal info</p>
+                <button class="btn-sm btn-primary" style="margin-top: 12px;"><i class="fas fa-eye"></i> View report</button>
+                <button class="btn-sm btn-outline" style="margin-left: 8px;" onclick="event.stopPropagation();downloadProfileReport()"><i class="fas fa-download"></i> PDF</button>
+            </div>
+            <div class="program-card intermediate-border" onclick="viewEnrollmentSlip()">
+                <div><i class="fas fa-receipt" style="font-size: 1.8rem; color:#f59e0b;"></i></div>
+                <h3 style="margin-top: 12px;">Enrollment Confirmation</h3>
+                <p style="color:#475569;">Official enrollment slip & registration timestamp</p>
+                <button class="btn-sm btn-primary" style="margin-top: 12px;"><i class="fas fa-eye"></i> View slip</button>
+                <button class="btn-sm btn-outline" style="margin-left: 8px;" onclick="event.stopPropagation();downloadEnrollmentSlip()"><i class="fas fa-file-pdf"></i> PDF</button>
             </div>
         </div>
+
+        <!-- Academy analytics (global) -->
+        <div class="data-card">
+            <h3><i class="fas fa-chart-simple"></i> Academy program distribution</h3>
+            <div class="stats-row" style="margin-top: 1rem;">
+                <div class="stat-tile"><div class="stat-header"><div class="stat-icon bg-success-light"><i class="fas fa-seedling"></i></div></div><div class="stat-value"><?php echo $beginnerCount; ?></div><div>Beginner athletes</div></div>
+                <div class="stat-tile"><div class="stat-header"><div class="stat-icon bg-warning-light"><i class="fas fa-chart-line"></i></div></div><div class="stat-value"><?php echo $intermediateCount; ?></div><div>Intermediate</div></div>
+                <div class="stat-tile"><div class="stat-header"><div class="stat-icon bg-primary-light"><i class="fas fa-trophy"></i></div></div><div class="stat-value"><?php echo $advancedCount; ?></div><div>Advanced</div></div>
+            </div>
+        </div>
+        <?php else: ?>
+            <div class="data-card">
+                <p style="color: #475569;">Loading your profile information...</p>
+            </div>
         <?php endif; ?>
-        <?php endif; ?>
-    </div>
-    
-    <!-- Premium Modals -->
-    <div id="viewModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <span class="close" onclick="closeViewModal()">&times;</span>
-                <h3><i class="fas fa-user-circle"></i> Gymnast Details</h3>
-            </div>
-            <div class="modal-body" id="viewModalContent"></div>
-        </div>
-    </div>
-    
-    <div id="deleteModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <span class="close" onclick="closeDeleteModal()">&times;</span>
-                <h3><i class="fas fa-exclamation-triangle"></i> Confirm Deletion</h3>
-            </div>
-            <div class="modal-body">
-                <p id="deleteMessage" style="margin-bottom: 24px; color: #e2e8f0;">Are you sure?</p>
-                <div style="display:flex; gap:12px; justify-content:flex-end;">
-                    <button onclick="closeDeleteModal()" class="btn-reset">Cancel</button>
-                    <button id="confirmDeleteBtn" class="btn-delete" style="padding:10px 24px;">Delete Permanently</button>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <script>
-        let deleteId = null;
-        
-        let sortDirection = {};
-        function sortTable(colIndex) {
-            const table = document.getElementById('gymnastTable');
-            const tbody = table.querySelector('tbody');
-            const rows = Array.from(tbody.querySelectorAll('tr'));
-            sortDirection[colIndex] = sortDirection[colIndex] === 'asc' ? 'desc' : 'asc';
-            rows.sort((a, b) => {
-                let aVal = a.cells[colIndex].textContent.toLowerCase();
-                let bVal = b.cells[colIndex].textContent.toLowerCase();
-                if (sortDirection[colIndex] === 'asc') return aVal.localeCompare(bVal);
-                else return bVal.localeCompare(aVal);
-            });
-            rows.forEach(row => tbody.appendChild(row));
-        }
-        
-        function exportToCSV() {
-            const rows = document.querySelectorAll('#tableBody tr');
-            let csv = [["Name", "Membership ID", "Email", "Contact", "Program", "Status"]];
-            rows.forEach(row => {
-                if (row.style.display !== 'none') {
-                    csv.push([
-                        row.cells[0].textContent.trim(),
-                        row.cells[1].textContent.trim(),
-                        row.cells[2].textContent.trim(),
-                        row.cells[3].textContent.trim(),
-                        row.cells[4].textContent.trim(),
-                        row.cells[5].textContent.trim()
-                    ]);
-                }
-            });
-            const csvContent = csv.map(row => row.join(",")).join("\n");
-            const blob = new Blob([csvContent], { type: 'text/csv' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `gymnasts_export_${new Date().toISOString().slice(0,19)}.csv`;
-            a.click();
-            URL.revokeObjectURL(url);
-        }
-        
-        function applyFilters() {
-            const search = document.getElementById('searchInput').value.toLowerCase();
-            const program = document.getElementById('programFilter').value;
-            const status = document.getElementById('statusFilter').value;
-            const rows = document.querySelectorAll('#tableBody tr');
-            let visible = 0;
-            rows.forEach(row => {
-                const name = row.cells[0].textContent.toLowerCase();
-                const id = row.cells[1].textContent.toLowerCase();
-                const email = row.cells[2].textContent.toLowerCase();
-                const rowProgram = row.getAttribute('data-program');
-                const rowStatus = row.getAttribute('data-status');
-                const matchSearch = name.includes(search) || id.includes(search) || email.includes(search);
-                const matchProgram = !program || rowProgram === program;
-                const matchStatus = !status || rowStatus === status;
-                if (matchSearch && matchProgram && matchStatus) { row.style.display = ''; visible++; }
-                else { row.style.display = 'none'; }
-            });
-            document.getElementById('resultsCount').innerHTML = `<i class="fas fa-chart-bar"></i> Showing ${visible} of ${rows.length} gymnasts`;
-        }
-        
-        function resetFilters() {
-            document.getElementById('searchInput').value = '';
-            document.getElementById('programFilter').value = '';
-            document.getElementById('statusFilter').value = '';
-            applyFilters();
-        }
-        
-        function viewGymnast(id) {
-            const modal = document.getElementById('viewModal');
-            const content = document.getElementById('viewModalContent');
-            content.innerHTML = '<div style="text-align:center; padding:40px;"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
-            modal.style.display = 'block';
-            fetch(`get_gymnast.php?id=${id}`).then(r=>r.json()).then(data=>{
-                if(data.success){
-                    const g = data.gymnast;
-                    content.innerHTML = `
-                        <div style="display:grid; gap:14px;">
-                            <div style="display:flex; justify-content:space-between; padding:14px; background:rgba(255,255,255,0.05); border-radius:14px;">
-                                <strong style="color:#a78bfa;">Membership ID:</strong> <span style="color:white;">${g.membership_id}</span>
-                            </div>
-                            <div style="display:flex; justify-content:space-between; padding:14px; background:rgba(255,255,255,0.05); border-radius:14px;">
-                                <strong style="color:#a78bfa;">Email:</strong> <span style="color:white;">${g.email}</span>
-                            </div>
-                            <div style="display:flex; justify-content:space-between; padding:14px; background:rgba(255,255,255,0.05); border-radius:14px;">
-                                <strong style="color:#a78bfa;">Contact Number:</strong> <span style="color:white;">${g.contact_no}</span>
-                            </div>
-                            <div style="display:flex; justify-content:space-between; padding:14px; background:rgba(255,255,255,0.05); border-radius:14px;">
-                                <strong style="color:#a78bfa;">Date of Birth:</strong> <span style="color:white;">${new Date(g.date_of_birth).toLocaleDateString()}</span>
-                            </div>
-                            <div style="display:flex; justify-content:space-between; padding:14px; background:rgba(255,255,255,0.05); border-radius:14px;">
-                                <strong style="color:#a78bfa;">Training Program:</strong> <span style="color:white;">${g.training_program}</span>
-                            </div>
-                            <div style="display:flex; justify-content:space-between; padding:14px; background:rgba(255,255,255,0.05); border-radius:14px;">
-                                <strong style="color:#a78bfa;">Enrollment Date:</strong> <span style="color:white;">${new Date(g.enrollment_date).toLocaleDateString()}</span>
-                            </div>
-                            <div style="display:flex; justify-content:space-between; padding:14px; background:rgba(255,255,255,0.05); border-radius:14px;">
-                                <strong style="color:#a78bfa;">Status:</strong> <span style="color:white;">${g.progress_status}</span>
-                            </div>
-                            <div style="display:flex; justify-content:space-between; padding:14px; background:rgba(255,255,255,0.05); border-radius:14px;">
-                                <strong style="color:#a78bfa;">Member Since:</strong> <span style="color:white;">${new Date(g.created_at).toLocaleString()}</span>
-                            </div>
-                        </div>
-                        <div style="margin-top: 28px; display: flex; gap: 12px; justify-content: flex-end;">
-                            <a href="update.php?id=${g.id}" class="btn-update" style="padding:10px 20px; text-decoration:none;">Edit Gymnast</a>
-                            <button onclick="closeViewModal()" class="btn-reset">Close</button>
-                        </div>
-                    `;
-                } else { content.innerHTML = '<p style="color:white;">Error loading data</p><button onclick="closeViewModal()" class="btn-reset" style="margin-top:20px;">Close</button>'; }
-            }).catch(()=>{ content.innerHTML = '<p style="color:white;">Error loading data</p><button onclick="closeViewModal()" class="btn-reset" style="margin-top:20px;">Close</button>'; });
-        }
-        
-        function confirmDelete(id, name) { deleteId = id; document.getElementById('deleteMessage').innerHTML = `Delete <strong>${name}</strong>? This action cannot be undone.`; document.getElementById('deleteModal').style.display = 'block'; }
-        function closeViewModal() { document.getElementById('viewModal').style.display = 'none'; }
-        function closeDeleteModal() { document.getElementById('deleteModal').style.display = 'none'; deleteId = null; }
-        document.getElementById('confirmDeleteBtn').onclick = function() { if(deleteId) window.location.href = `delete.php?id=${deleteId}`; };
-        window.onclick = function(e) { if(e.target == document.getElementById('viewModal')) closeViewModal(); if(e.target == document.getElementById('deleteModal')) closeDeleteModal(); };
-        
-        <?php if ($isGymnast && $myProfile): ?>
-        const gymnastData = {
-            full_name: '<?php echo addslashes($myProfile['full_name']); ?>',
-            membership_id: '<?php echo $myProfile['membership_id']; ?>',
-            email: '<?php echo $myProfile['email']; ?>',
-            contact_no: '<?php echo $myProfile['contact_no']; ?>',
-            date_of_birth: '<?php echo date('F j, Y', strtotime($myProfile['date_of_birth'])); ?>',
-            training_program: '<?php echo $myProfile['training_program']; ?>',
-            enrollment_date: '<?php echo date('F j, Y', strtotime($myProfile['enrollment_date'])); ?>',
-            progress_status: '<?php echo $myProfile['progress_status']; ?>',
-            created_at: '<?php echo date('F j, Y g:i A', strtotime($myProfile['created_at'])); ?>'
-        };
-        
-        function viewProfileReport() {
-            const modal = document.getElementById('viewModal');
-            const content = document.getElementById('viewModalContent');
-            content.innerHTML = `
-                <div style="background:linear-gradient(135deg, #667eea, #764ba2); padding:30px; border-radius:20px; text-align:center; margin-bottom:25px;">
-                    <i class="fas fa-user-circle" style="font-size:60px; color:white;"></i>
-                    <h2 style="color:white; margin-top:15px;">${gymnastData.full_name}</h2>
-                    <p style="color:#c4b5fd;">Member ID: ${gymnastData.membership_id}</p>
-                </div>
-                <div style="display:grid; gap:12px;">
-                    <div style="display:flex; justify-content:space-between; padding:14px; background:rgba(255,255,255,0.05); border-radius:14px;">
-                        <strong style="color:#a78bfa;"><i class="fas fa-envelope"></i> Email:</strong> 
-                        <span style="color:white;">${gymnastData.email}</span>
-                    </div>
-                    <div style="display:flex; justify-content:space-between; padding:14px; background:rgba(255,255,255,0.05); border-radius:14px;">
-                        <strong style="color:#a78bfa;"><i class="fas fa-phone"></i> Contact:</strong> 
-                        <span style="color:white;">${gymnastData.contact_no}</span>
-                    </div>
-                    <div style="display:flex; justify-content:space-between; padding:14px; background:rgba(255,255,255,0.05); border-radius:14px;">
-                        <strong style="color:#a78bfa;"><i class="fas fa-calendar-alt"></i> DOB:</strong> 
-                        <span style="color:white;">${gymnastData.date_of_birth}</span>
-                    </div>
-                    <div style="display:flex; justify-content:space-between; padding:14px; background:rgba(255,255,255,0.05); border-radius:14px;">
-                        <strong style="color:#a78bfa;"><i class="fas fa-chalkboard-user"></i> Program:</strong> 
-                        <span style="color:white;">${gymnastData.training_program}</span>
-                    </div>
-                    <div style="display:flex; justify-content:space-between; padding:14px; background:rgba(255,255,255,0.05); border-radius:14px;">
-                        <strong style="color:#a78bfa;"><i class="fas fa-calendar-check"></i> Enrolled:</strong> 
-                        <span style="color:white;">${gymnastData.enrollment_date}</span>
-                    </div>
-                    <div style="display:flex; justify-content:space-between; padding:14px; background:rgba(255,255,255,0.05); border-radius:14px;">
-                        <strong style="color:#a78bfa;"><i class="fas fa-chart-line"></i> Status:</strong> 
-                        <span style="color:white;">${gymnastData.progress_status}</span>
-                    </div>
-                    <div style="display:flex; justify-content:space-between; padding:14px; background:rgba(255,255,255,0.05); border-radius:14px;">
-                        <strong style="color:#a78bfa;"><i class="fas fa-clock"></i> Member Since:</strong> 
-                        <span style="color:white;">${gymnastData.created_at}</span>
-                    </div>
-                </div>
-                <div style="margin-top:20px; text-align:center; font-size:12px; color:#94a3b8; padding-top:20px; border-top:1px solid rgba(255,255,255,0.1);">
-                    <p>Generated: ${new Date().toLocaleString()}</p>
-                </div>
-            `;
-            modal.style.display = 'block';
-        }
-        
-        function downloadProfileReport() {
-            const div = document.createElement('div');
-            div.style.padding = '30px';
-            div.style.fontFamily = 'Inter, sans-serif';
-            div.style.background = 'white';
-            div.innerHTML = `
-                <div style="background:linear-gradient(135deg,#667eea,#764ba2); padding:40px; border-radius:20px; color:white; text-align:center;">
-                    <h1 style="margin:0;">Gymnastics Academy</h1>
-                    <p style="margin-top:10px;">Profile Summary Report</p>
-                </div>
-                <div style="text-align:center; margin:30px 0;">
-                    <h2>${gymnastData.full_name}</h2>
-                    <p><strong>Member ID:</strong> ${gymnastData.membership_id}</p>
-                </div>
-                <div style="margin-top:20px;">
-                    <div style="display:flex; justify-content:space-between; padding:12px; border-bottom:1px solid #e2e8f0;">
-                        <strong>Email:</strong> ${gymnastData.email}
-                    </div>
-                    <div style="display:flex; justify-content:space-between; padding:12px; border-bottom:1px solid #e2e8f0;">
-                        <strong>Contact Number:</strong> ${gymnastData.contact_no}
-                    </div>
-                    <div style="display:flex; justify-content:space-between; padding:12px; border-bottom:1px solid #e2e8f0;">
-                        <strong>Date of Birth:</strong> ${gymnastData.date_of_birth}
-                    </div>
-                    <div style="display:flex; justify-content:space-between; padding:12px; border-bottom:1px solid #e2e8f0;">
-                        <strong>Training Program:</strong> ${gymnastData.training_program}
-                    </div>
-                    <div style="display:flex; justify-content:space-between; padding:12px; border-bottom:1px solid #e2e8f0;">
-                        <strong>Enrollment Date:</strong> ${gymnastData.enrollment_date}
-                    </div>
-                    <div style="display:flex; justify-content:space-between; padding:12px; border-bottom:1px solid #e2e8f0;">
-                        <strong>Status:</strong> ${gymnastData.progress_status}
-                    </div>
-                    <div style="display:flex; justify-content:space-between; padding:12px;">
-                        <strong>Member Since:</strong> ${gymnastData.created_at}
-                    </div>
-                </div>
-                <div style="margin-top:30px; text-align:center; font-size:12px; color:#666;">
-                    <p>Generated: ${new Date().toLocaleString()}</p>
-                    <p>© Gymnastics Academy - Official Document</p>
-                </div>
-            `;
-            html2pdf().set({
-                margin: 0.5,
-                filename: `Profile_${gymnastData.membership_id}.pdf`,
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2 },
-                jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
-            }).from(div).save();
-        }
-        
-        function viewEnrollmentSlip() {
-            const confNum = 'ENR-' + new Date().getFullYear() + '-' + Math.random().toString(36).substring(2,10).toUpperCase();
-            const modal = document.getElementById('viewModal');
-            const content = document.getElementById('viewModalContent');
-            content.innerHTML = `
-                <div style="text-align:center; margin-bottom:20px;">
-                    <h2 style="color:#a78bfa; margin-bottom:5px;">Gymnastics Academy</h2>
-                    <p style="color:#94a3b8;">Official Enrollment Confirmation</p>
-                </div>
-                <div style="background:rgba(255,255,255,0.05); padding:20px; border-radius:16px;">
-                    <div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.1);">
-                        <strong style="color:#a78bfa;">Confirmation Number:</strong> 
-                        <span style="color:white;">${confNum}</span>
-                    </div>
-                    <div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.1);">
-                        <strong style="color:#a78bfa;">Registration Timestamp:</strong> 
-                        <span style="color:white;">${gymnastData.created_at}</span>
-                    </div>
-                    <div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.1);">
-                        <strong style="color:#a78bfa;">Student Name:</strong> 
-                        <span style="color:white;">${gymnastData.full_name}</span>
-                    </div>
-                    <div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.1);">
-                        <strong style="color:#a78bfa;">Member ID:</strong> 
-                        <span style="color:white;">${gymnastData.membership_id}</span>
-                    </div>
-                    <div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.1);">
-                        <strong style="color:#a78bfa;">Course/Program:</strong> 
-                        <span style="color:white;">${gymnastData.training_program} Program</span>
-                    </div>
-                    <div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.1);">
-                        <strong style="color:#a78bfa;">Enrollment Date:</strong> 
-                        <span style="color:white;">${gymnastData.enrollment_date}</span>
-                    </div>
-                    <div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.1);">
-                        <strong style="color:#a78bfa;">Status:</strong> 
-                        <span style="color:white;">${gymnastData.progress_status}</span>
-                    </div>
-                    <div style="display:flex; justify-content:space-between; padding:10px 0;">
-                        <strong style="color:#a78bfa;">Contact:</strong> 
-                        <span style="color:white;">${gymnastData.contact_no}</span>
-                    </div>
-                </div>
-                <div style="margin-top:20px; text-align:center; font-size:12px; color:#94a3b8;">
-                    <p><i class="fas fa-check-circle" style="color:#34d399;"></i> This is an electronically generated confirmation slip.</p>
-                    <p style="margin-top:5px;">Valid for official purposes within Gymnastics Academy.</p>
-                </div>
-            `;
-            modal.style.display = 'block';
-        }
-        
-        function downloadEnrollmentSlip() {
-            const confNum = 'ENR-' + new Date().getFullYear() + '-' + Math.random().toString(36).substring(2,10).toUpperCase();
-            const div = document.createElement('div');
-            div.style.padding = '30px';
-            div.style.fontFamily = 'Inter, sans-serif';
-            div.style.background = 'white';
-            div.innerHTML = `
-                <div style="text-align:center; border-bottom:2px solid #667eea; padding-bottom:20px; margin-bottom:20px;">
-                    <h1 style="color:#667eea; margin:0;">Gymnastics Academy</h1>
-                    <p style="margin:5px 0 0 0;">Official Enrollment Confirmation Slip</p>
-                </div>
-                <div style="margin-top:20px;">
-                    <div style="display:flex; justify-content:space-between; padding:12px; border-bottom:1px solid #e2e8f0;">
-                        <strong>Confirmation Number:</strong> ${confNum}
-                    </div>
-                    <div style="display:flex; justify-content:space-between; padding:12px; border-bottom:1px solid #e2e8f0;">
-                        <strong>Registration Timestamp:</strong> ${gymnastData.created_at}
-                    </div>
-                    <div style="display:flex; justify-content:space-between; padding:12px; border-bottom:1px solid #e2e8f0;">
-                        <strong>Student Name:</strong> ${gymnastData.full_name}
-                    </div>
-                    <div style="display:flex; justify-content:space-between; padding:12px; border-bottom:1px solid #e2e8f0;">
-                        <strong>Member ID:</strong> ${gymnastData.membership_id}
-                    </div>
-                    <div style="display:flex; justify-content:space-between; padding:12px; border-bottom:1px solid #e2e8f0;">
-                        <strong>Course Summary:</strong> ${gymnastData.training_program} Training Program
-                    </div>
-                    <div style="display:flex; justify-content:space-between; padding:12px; border-bottom:1px solid #e2e8f0;">
-                        <strong>Enrollment Date:</strong> ${gymnastData.enrollment_date}
-                    </div>
-                    <div style="display:flex; justify-content:space-between; padding:12px; border-bottom:1px solid #e2e8f0;">
-                        <strong>Status:</strong> ${gymnastData.progress_status}
-                    </div>
-                    <div style="display:flex; justify-content:space-between; padding:12px;">
-                        <strong>Contact:</strong> ${gymnastData.contact_no}
-                    </div>
-                </div>
-                <div style="margin-top:30px; text-align:center; font-size:12px; color:#666;">
-                    <p>Generated: ${new Date().toLocaleString()}</p>
-                    <p>© Gymnastics Academy - Official Document</p>
-                    <p style="margin-top:20px;">This confirms that the above-named student is officially enrolled in the Gymnastics Academy program.</p>
-                </div>
-            `;
-            html2pdf().set({
-                margin: 0.5,
-                filename: `Enrollment_${gymnastData.membership_id}.pdf`,
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2 },
-                jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
-            }).from(div).save();
-        }
-        <?php endif; ?>
-        
-        window.addEventListener('load', function() { 
-            applyFilters(); 
-            const bars = document.querySelectorAll('.progress-fill'); 
-            bars.forEach(bar => { 
-                const w = bar.style.width; 
-                bar.style.width = '0%'; 
-                setTimeout(() => { bar.style.width = w; }, 100); 
-            });
+    <?php endif; ?>
+</div>
+
+<!-- Modals -->
+<div id="viewModal" class="modal"><div class="modal-container"><div class="modal-header"><span style="float:right; cursor:pointer;" onclick="closeModal('viewModal')">&times;</span><i class="fas fa-user-circle"></i> Athlete details</div><div class="modal-body" id="viewModalContent"></div></div></div>
+<div id="deleteModal" class="modal"><div class="modal-container"><div class="modal-header">Confirm removal</div><div class="modal-body"><p id="deleteMessage"></p><div style="display:flex; gap:12px; justify-content:flex-end; margin-top:20px;"><button onclick="closeModal('deleteModal')" class="btn-sm btn-outline">Cancel</button><button id="confirmDeleteBtn" class="btn-sm" style="background:#dc2626; color:white;">Delete permanently</button></div></div></div></div>
+
+<script>
+    let deleteId = null;
+    let sortDir = {};
+
+    function sortTable(col) {
+        const tbody = document.getElementById('tableBody');
+        if(!tbody) return;
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+        sortDir[col] = sortDir[col] === 'asc' ? 'desc' : 'asc';
+        rows.sort((a,b) => {
+            let aText = a.cells[col].innerText.trim().toLowerCase();
+            let bText = b.cells[col].innerText.trim().toLowerCase();
+            if(sortDir[col] === 'asc') return aText.localeCompare(bText);
+            else return bText.localeCompare(aText);
         });
-    </script>
+        rows.forEach(r => tbody.appendChild(r));
+    }
+
+    function applyFilters() {
+        const search = document.getElementById('searchInput')?.value.toLowerCase() || '';
+        const program = document.getElementById('programFilter')?.value || '';
+        const status = document.getElementById('statusFilter')?.value || '';
+        const rows = document.querySelectorAll('#tableBody tr');
+        let visible = 0;
+        rows.forEach(row => {
+            const name = row.cells[0].innerText.toLowerCase();
+            const id = row.cells[1].innerText.toLowerCase();
+            const email = row.cells[2].innerText.toLowerCase();
+            const rowProg = row.getAttribute('data-program');
+            const rowStat = row.getAttribute('data-status');
+            const matchSearch = name.includes(search) || id.includes(search) || email.includes(search);
+            const matchProg = !program || rowProg === program;
+            const matchStat = !status || rowStat === status;
+            if(matchSearch && matchProg && matchStat) { row.style.display = ''; visible++; }
+            else row.style.display = 'none';
+        });
+        const countSpan = document.getElementById('resultsCount');
+        if(countSpan) countSpan.innerText = `Showing ${visible} of ${rows.length} athletes`;
+    }
+
+    function resetFilters() {
+        if(document.getElementById('searchInput')) document.getElementById('searchInput').value = '';
+        if(document.getElementById('programFilter')) document.getElementById('programFilter').value = '';
+        if(document.getElementById('statusFilter')) document.getElementById('statusFilter').value = '';
+        applyFilters();
+    }
+
+    function exportToCSV() {
+        const rows = document.querySelectorAll('#tableBody tr');
+        let csv = [["Name","Member ID","Email","Contact","Program","Status"]];
+        rows.forEach(row => {
+            if(row.style.display !== 'none'){
+                csv.push([
+                    row.cells[0].innerText.trim(), row.cells[1].innerText.trim(),
+                    row.cells[2].innerText.trim(), row.cells[3].innerText.trim(),
+                    row.cells[4].innerText.trim(), row.cells[5].innerText.trim()
+                ]);
+            }
+        });
+        const blob = new Blob([csv.map(r=>r.join(",")).join("\n")], {type:'text/csv'});
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `gymnasts_${new Date().toISOString().slice(0,19)}.csv`;
+        a.click(); URL.revokeObjectURL(a.href);
+    }
+
+    function viewGymnast(id) {
+        const modal = document.getElementById('viewModal');
+        const content = document.getElementById('viewModalContent');
+        content.innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-pulse"></i> Loading profile...</div>';
+        modal.style.display = 'flex';
+        fetch(`get_gymnast.php?id=${id}`).then(r=>r.json()).then(data=>{
+            if(data.success){
+                const g = data.gymnast;
+                content.innerHTML = `<div style="display:grid; gap:12px;"><div><strong>Membership ID:</strong> ${g.membership_id}</div><div><strong>Email:</strong> ${g.email}</div><div><strong>Contact:</strong> ${g.contact_no}</div><div><strong>DOB:</strong> ${new Date(g.date_of_birth).toLocaleDateString()}</div><div><strong>Program:</strong> ${g.training_program}</div><div><strong>Enrolled:</strong> ${new Date(g.enrollment_date).toLocaleDateString()}</div><div><strong>Status:</strong> ${g.progress_status}</div><div><strong>Member since:</strong> ${new Date(g.created_at).toLocaleString()}</div></div><div style="margin-top:24px; text-align:right;"><a href="update.php?id=${g.id}" class="action-link btn-edit">Edit athlete</a><button onclick="closeModal('viewModal')" class="btn-sm btn-outline" style="margin-left:8px;">Close</button></div>`;
+            } else content.innerHTML = '<p>Unable to load details</p><button onclick="closeModal(\'viewModal\')" class="btn-sm">Close</button>';
+        }).catch(()=>{ content.innerHTML = '<p>Error loading</p><button onclick="closeModal(\'viewModal\')" class="btn-sm">Close</button>';});
+    }
+
+    function confirmDelete(id, name) { deleteId = id; document.getElementById('deleteMessage').innerHTML = `Delete <strong>${name}</strong>? This action is irreversible.`; document.getElementById('deleteModal').style.display = 'flex'; }
+    function closeModal(modalId) { document.getElementById(modalId).style.display = 'none'; }
+    
+    const confirmBtn = document.getElementById('confirmDeleteBtn');
+    if(confirmBtn) {
+        confirmBtn.addEventListener('click', ()=>{ if(deleteId) window.location.href = `delete.php?id=${deleteId}`; });
+    }
+    
+    window.onclick = function(e) { if(e.target.classList.contains('modal')) e.target.style.display = 'none'; };
+
+    <?php if (!$isAdmin && isset($myProfile) && $myProfile): ?>
+    const gymnastData = {
+        full_name: '<?php echo addslashes($myProfile['full_name']); ?>',
+        membership_id: '<?php echo $myProfile['membership_id']; ?>',
+        email: '<?php echo $myProfile['email']; ?>',
+        contact_no: '<?php echo $myProfile['contact_no']; ?>',
+        date_of_birth: '<?php echo date('F j, Y', strtotime($myProfile['date_of_birth'])); ?>',
+        training_program: '<?php echo $myProfile['training_program']; ?>',
+        enrollment_date: '<?php echo date('F j, Y', strtotime($myProfile['enrollment_date'])); ?>',
+        progress_status: '<?php echo $myProfile['progress_status']; ?>',
+        created_at: '<?php echo date('F j, Y g:i A', strtotime($myProfile['created_at'])); ?>'
+    };
+    function viewProfileReport() {
+        const modal = document.getElementById('viewModal');
+        const content = document.getElementById('viewModalContent');
+        content.innerHTML = `<div style="background:#f0f4ff; padding:1.5rem; border-radius:24px; text-align:center;"><h2>${gymnastData.full_name}</h2><p>${gymnastData.membership_id}</p></div>
+        <div style="margin-top:1rem;">${Object.entries(gymnastData).map(([k,v])=>`<div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #eef2ff;"><strong>${k.replace(/_/g,' ')}</strong><span>${v}</span></div>`).join('')}</div>
+        <div style="margin-top:20px; font-size:11px; text-align:center;">Generated ${new Date().toLocaleString()}</div>`;
+        modal.style.display = 'flex';
+    }
+    function downloadProfileReport() {
+        const div = document.createElement('div'); div.style.padding='2rem'; div.style.fontFamily='Inter'; div.innerHTML = `<h2>Gymnastics Academy · Profile</h2><hr/><p><strong>${gymnastData.full_name}</strong> (${gymnastData.membership_id})</p>${Object.entries(gymnastData).map(([k,v])=>`<p><strong>${k}:</strong> ${v}</p>`).join('')}<p>Report date: ${new Date().toLocaleString()}</p>`;
+        html2pdf().set({filename:`Profile_${gymnastData.membership_id}.pdf`}).from(div).save();
+    }
+    function viewEnrollmentSlip() {
+        const conf = 'ENR-'+new Date().getFullYear()+'-'+Math.random().toString(36).substring(2,8).toUpperCase();
+        const modal = document.getElementById('viewModal');
+        const content = document.getElementById('viewModalContent');
+        content.innerHTML = `<div style="text-align:center;"><h3>Official Enrollment Confirmation</h3><p style="color:#4f46e5;">${conf}</p></div>
+        <div style="margin-top:1rem;">${[['Student',gymnastData.full_name],['Member ID',gymnastData.membership_id],['Program',gymnastData.training_program],['Enrollment date',gymnastData.enrollment_date],['Status',gymnastData.progress_status],['Registration timestamp',gymnastData.created_at]].map(([l,v])=>`<div style="display:flex; justify-content:space-between; padding:6px 0;"><strong>${l}:</strong> ${v}</div>`).join('')}</div>
+        <div class="text-center" style="margin-top:16px;"><i class="fas fa-check-circle" style="color:#10b981;"></i> Electronically generated slip</div>`;
+        modal.style.display = 'flex';
+    }
+    function downloadEnrollmentSlip() {
+        const conf = 'ENR-'+new Date().getFullYear()+'-'+Math.random().toString(36).substring(2,8).toUpperCase();
+        const div = document.createElement('div'); div.style.padding='2rem'; div.innerHTML = `<h1>Gymnastics Academy</h1><h3>Enrollment Confirmation</h3><p><strong>Confirmation #:</strong> ${conf}</p><hr/>${[['Student',gymnastData.full_name],['Member ID',gymnastData.membership_id],['Program',gymnastData.training_program],['Enrollment date',gymnastData.enrollment_date],['Status',gymnastData.progress_status],['Timestamp',gymnastData.created_at]].map(([l,v])=>`<p><strong>${l}:</strong> ${v}</p>`).join('')}<p>Valid official document</p>`;
+        html2pdf().set({filename:`Enrollment_${gymnastData.membership_id}.pdf`}).from(div).save();
+    }
+    <?php endif; ?>
+    window.addEventListener('load', applyFilters);
+</script>
 </body>
 </html>

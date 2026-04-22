@@ -69,7 +69,7 @@ class GymnastManager {
             return ['success' => false, 'errors' => $errors];
         }
         
-        // Set the updated_by variable for the trigger
+       
         $connection = $this->db->getConnection();
         $username = $_SESSION['username'] ?? 'system';
         $connection->query("SET @updated_by = '" . $connection->real_escape_string($username) . "'");
@@ -104,12 +104,12 @@ class GymnastManager {
     }
     
     public function deleteGymnast($id) {
-        // Set the deleted_by variable for the trigger
+        
         $connection = $this->db->getConnection();
         $username = $_SESSION['username'] ?? 'system';
         $connection->query("SET @deleted_by = '" . $connection->real_escape_string($username) . "'");
         
-        // Delete from database (trigger will log to deleted_records_log)
+        
         $sql = "DELETE FROM gymnasts WHERE id = ?";
         $stmt = $this->db->executeQuery($sql, "i", [$id]);
         
